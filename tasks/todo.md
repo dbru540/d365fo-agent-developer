@@ -6,11 +6,19 @@
 - [x] Fix enum : champ de table sur BASE enum → `<EnumType>` (pas `<ExtendedDataType>`), via `resolver.enum_name` (index `AxEnum` + `_KNOWN_BASE_ENUMS={NoYes,Gender,Weekday,Timezone}` car les enums kernel n'ont pas de XML dans le corpus). Tests +2 (total **156**). Ruff clean.
 - [x] PROUVÉ E2E : spec (table avec champ enum NoYes + form liée) → générer → `compile-generated` → **succeeded, 0 erreur, PLD restauré**. ~22 familles déterministes.
 
+## ✅ FAIT (2026-06-12) — Expédition côté machine
+- [x] `pyproject.toml` : v0.4.0, email `dbru@fiveforty.fr`, URLs `github.com/dbru540/d365fo-agent`.
+- [x] `DEFAULT_KNOWLEDGE_URL` → `https://github.com/dbru540/d365fo-agent/releases/download/knowledge-v1/d365fo-standard.db.gz` (test `test_no_url_configured` patché en conséquence).
+- [x] `build-index --exclude-package PATTERN` (fnmatch, répétable) : permet un index publiable SANS code client/ISV. +1 test (**157 verts**, ruff clean).
+- [x] Index standard publiable construit : `release/d365fo-standard.db` (**232 117 artefacts, 173 packages, 0 trace client** — exclus BAB*/BHS*/CDC/CDI/CLI/EB*/FLexmind*, ce dernier découvert par audit : il contenait 3 objets BAB). Gzippé → `release/d365fo-standard.db.gz` (**14,4 Mo**).
+- [x] Wheel 0.4.0 reconstruit + sdist, `twine check` PASSED ; wheel vérifié (contient l'URL + exclude_packages).
+- [x] `git init -b main` + `.gitignore` (corpus client, zips, release/, état agent) + commit racine `90fb599` (74 fichiers toolkit).
+
 ## ⏳ RESTE — EXPÉDITION (actions utilisateur, comptes requis)
-- [ ] Reconstruire le wheel : `python -m build` (dist obsolète — manque class/table/form/compile_generated).
+- [ ] **Assainir avant push public** : 26 mentions « Babilou » dans 9 fichiers commités (docs/mcp-server.md ×11, specs/real ×5, docs/tool-catalog.md ×4, rollout-plan ×2, architecture/benchmark/test_build/tools ×1) + `config/babiloufinops.rules.json`, `tasks/`, les 2 plans stratégiques — décider : anonymiser ou retirer du repo public.
+- [ ] Créer le repo GitHub `dbru540/d365fo-agent` + `git remote add` + push.
+- [ ] Release `knowledge-v1` avec l'asset `release/d365fo-standard.db.gz` (nom EXACT `d365fo-standard.db.gz` — l'URL par défaut pointe dessus).
 - [ ] Publier PyPI : `python -m twine upload dist/*` (compte ; vérifier nom `d365fo-agent` libre).
-- [ ] Héberger l'index standard `.db.gz` (GitHub release) + `DEFAULT_KNOWLEDGE_URL` dans `knowledge_fetch.py`.
-- [ ] Remplir email auteur + URLs `your-org` dans `pyproject.toml` ; `git init` du toolkit.
 
 ## ✅ FAIT — #1 boucle générer→compiler + #2 validation par un vrai ticket
 
