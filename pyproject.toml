@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "d365fo-agent"
+version = "0.4.0"
+description = "Local D365 F&O knowledge toolkit: corpus indexing (SQLite FTS5), deterministic generation, and an MCP server that grounds coding agents (Claude Code, Codex) in real AOT facts."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "David Bru", email = "dbru@fiveforty.fr" }]
+keywords = [
+    "dynamics-365", "d365fo", "x++", "aot", "mcp", "model-context-protocol",
+    "claude", "claude-code", "codex", "ai", "code-generation", "rag",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Build Tools",
+]
+# Standard library only — nothing to install at runtime, which keeps the MCP server portable.
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/dbru540/d365fo-agent"
+Repository = "https://github.com/dbru540/d365fo-agent"
+Issues = "https://github.com/dbru540/d365fo-agent/issues"
+
+[project.optional-dependencies]
+# The graph-building engine is the ONLY external dependency, and only the
+# `run-graphify-staging` command needs it. Everything else (indexing, generation,
+# MCP server, validation) is Python standard library only.
+graph = ["graphify"]
+dev = ["pytest", "ruff", "build"]
+
+[project.scripts]
+d365fo-agent = "d365fo_agent.cli:main"
+d365fo-mcp = "d365fo_agent.mcp_server:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+# Methodology, default lint rules, and a default learned type-profile ship inside the package so
+# the server works after a plain `pip install` (no source tree needed).
+d365fo_agent = ["data/*"]

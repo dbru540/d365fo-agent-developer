@@ -1,0 +1,48 @@
+{
+  "description": "X++/D365 coding-rule configuration for the linter. Rule LOGIC lives in src/d365fo_agent/linter.py (one check function per id); this file is the ESLint-style CONFIG: which rules are on, their severity, and shared parameters. Edit here to tune policy without touching code.",
+  "prefixes": ["BAB", "Fiveforty", "FLexmind"],
+  "rules": {
+    "naming-prefix": {
+      "enabled": true,
+      "severity": "warning",
+      "methodology": "§3 Naming conventions",
+      "description": "New custom objects must carry the model/publisher prefix; extension objects must target a prefixed custom model."
+    },
+    "label-not-literal": {
+      "enabled": true,
+      "severity": "warning",
+      "methodology": "§4 Labels, never hard-coded strings",
+      "description": "User-facing text (Label/HelpText) must be a label reference @File:Id, not a literal string."
+    },
+    "field-type-matches-edt": {
+      "enabled": true,
+      "severity": "error",
+      "methodology": "§5 Field types",
+      "description": "A table field's AOT element type must match its EDT/enum base type (no AxTableFieldString for an int64/enum EDT). Uses the index to resolve the EDT base type."
+    },
+    "extension-target-exists": {
+      "enabled": true,
+      "severity": "error",
+      "methodology": "§1 Extension-first / verify, do not guess",
+      "description": "The object an extension targets must actually exist in the indexed corpus (anti-hallucination)."
+    },
+    "no-legacy-reference": {
+      "enabled": true,
+      "severity": "warning",
+      "methodology": "§9 Anti-patterns",
+      "description": "Do not build on artifacts classified legacy-deprecated."
+    },
+    "privilege-grant-explicit": {
+      "enabled": true,
+      "severity": "info",
+      "methodology": "§6 Security wiring",
+      "description": "A privilege that only grants Read may be under-permissioned for create/update/delete operations; confirm the grant matches intent."
+    },
+    "data-entity-completeness": {
+      "enabled": true,
+      "severity": "warning",
+      "methodology": "§7 Data entities & OData",
+      "description": "A public data entity should declare PublicEntityName/PublicCollectionName and non-empty Fields/Keys (not a stub)."
+    }
+  }
+}

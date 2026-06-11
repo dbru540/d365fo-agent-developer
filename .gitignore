@@ -1,0 +1,23 @@
+# Client corpus & bulk assets — never commit
+D365_repo/
+PackagesLocalDirectory.zip.*
+src.zip
+release/
+
+# Agent/session state
+.claude/
+.omc/
+.omx/
+.test_tmp/
+.pytest_cache/
+.ruff_cache/
+.mcp.json
+
+# Python build artifacts
+dist/
+build/
+*.egg-info/
+__pycache__/
+*.py[cod]
+.venv/
+venv/

@@ -1,0 +1,1836 @@
+{
+  "AxClass": {
+    "artifact_type": "AxClass",
+    "required": [
+      "Name",
+      "SourceCode"
+    ],
+    "recommended": [],
+    "known": [
+      "Name",
+      "SourceCode"
+    ],
+    "sample_size": 200
+  },
+  "AxLabelFile": {
+    "artifact_type": "AxlabelFile",
+    "required": [
+      "LabelContentFileName",
+      "LabelFileId",
+      "Language",
+      "Name",
+      "RelativeUriInModelStore"
+    ],
+    "recommended": [],
+    "known": [
+      "LabelContentFileName",
+      "LabelFileId",
+      "Language",
+      "Name",
+      "RelativeUriInModelStore"
+    ],
+    "sample_size": 148
+  },
+  "AxEdt": {
+    "artifact_type": "AxEDT",
+    "required": [
+      "ArrayElements",
+      "Name",
+      "Relations",
+      "TableReferences"
+    ],
+    "recommended": [
+      "Extends",
+      "Label"
+    ],
+    "known": [
+      "AllowNegative",
+      "ArrayElements",
+      "ButtonImage",
+      "ChangeCase",
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DateDay",
+      "DateMonth",
+      "DisplayHeight",
+      "DisplayLength",
+      "EnumType",
+      "Extends",
+      "FormHelp",
+      "HelpText",
+      "Label",
+      "MaxDateLabel",
+      "Name",
+      "NoOfDecimalsIsExtensible",
+      "PresenceClass",
+      "PresenceMethod",
+      "ReferenceTable",
+      "Relations",
+      "ShowZero",
+      "SignDisplay",
+      "StringSize",
+      "TableReferences",
+      "TimeSeconds"
+    ],
+    "sample_size": 200
+  },
+  "AxTable": {
+    "artifact_type": "AxTable",
+    "required": [
+      "DeleteActions",
+      "FieldGroups",
+      "Fields",
+      "FullTextIndexes",
+      "Indexes",
+      "Mappings",
+      "Name",
+      "Relations",
+      "SourceCode",
+      "StateMachines"
+    ],
+    "recommended": [
+      "ConfigurationKey",
+      "DeveloperDocumentation",
+      "Label",
+      "PrimaryIndex",
+      "ReplacementKey",
+      "SaveDataPerCompany",
+      "SubscriberAccessLevel",
+      "TableGroup",
+      "TitleField1",
+      "TitleField2"
+    ],
+    "known": [
+      "AllowChangeTracking",
+      "AllowRowVersionChangeTracking",
+      "AosAuthorization",
+      "CacheLookup",
+      "ClusteredIndex",
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "CreateRecIdIndex",
+      "CreatedBy",
+      "CreatedDateTime",
+      "CreatedTransactionId",
+      "DataSharingType",
+      "DeleteActions",
+      "DeveloperDocumentation",
+      "EntityRelationshipType",
+      "FieldGroups",
+      "Fields",
+      "FormRef",
+      "FullTextIndexes",
+      "Indexes",
+      "Label",
+      "Mappings",
+      "ModifiedBy",
+      "ModifiedDateTime",
+      "Modules",
+      "Name",
+      "OccEnabled",
+      "PrimaryIndex",
+      "Relations",
+      "ReplacementKey",
+      "SaveDataPerCompany",
+      "SourceCode",
+      "StateMachines",
+      "SubscriberAccessLevel",
+      "TableContents",
+      "TableGroup",
+      "TableType",
+      "TitleField1",
+      "TitleField2",
+      "ValidTimeStateFieldType",
+      "Visible"
+    ],
+    "sample_size": 200
+  },
+  "AxMenuItemDisplay": {
+    "artifact_type": "AxMenuItemDisplay",
+    "required": [
+      "Name",
+      "Object"
+    ],
+    "recommended": [
+      "ConfigurationKey",
+      "FeatureClass",
+      "HelpText",
+      "Label",
+      "MaintainUserLicense",
+      "ViewUserLicense"
+    ],
+    "known": [
+      "AllowRootNavigation",
+      "ConfigurationKey",
+      "CopyCallerQuery",
+      "DisabledResource",
+      "EnumParameter",
+      "EnumTypeParameter",
+      "FeatureClass",
+      "FormViewOption",
+      "HelpText",
+      "Label",
+      "LinkedPermissionObject",
+      "LinkedPermissionType",
+      "MaintainUserLicense",
+      "MultiSelect",
+      "Name",
+      "NeedsRecord",
+      "NormalImage",
+      "NormalResource",
+      "Object",
+      "ObjectType",
+      "OpenMode",
+      "Parameters",
+      "Query",
+      "SubscriberAccessLevel",
+      "ViewUserLicense"
+    ],
+    "sample_size": 200
+  },
+  "AxForm": {
+    "artifact_type": "AxForm",
+    "required": [
+      "DataSources",
+      "Design",
+      "Name",
+      "Parts",
+      "SourceCode"
+    ],
+    "recommended": [],
+    "known": [
+      "AllowPreLoading",
+      "DataSourceQuery",
+      "DataSources",
+      "Design",
+      "FormTemplate",
+      "InteractionClass",
+      "Name",
+      "Parts",
+      "SourceCode"
+    ],
+    "sample_size": 200
+  },
+  "AxEnum": {
+    "artifact_type": "AxEnum",
+    "required": [
+      "EnumValues",
+      "Name"
+    ],
+    "recommended": [
+      "Label"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DisplayLength",
+      "EnumValues",
+      "Help",
+      "IsExtensible",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Style",
+      "UseEnumValue"
+    ],
+    "sample_size": 200
+  },
+  "AxSecurityPrivilege": {
+    "artifact_type": "AxSecurityPrivilege",
+    "required": [
+      "DataEntityPermissions",
+      "DirectAccessPermissions",
+      "EntryPoints",
+      "FormControlOverrides",
+      "Name"
+    ],
+    "recommended": [
+      "Label"
+    ],
+    "known": [
+      "DataEntityPermissions",
+      "Description",
+      "DirectAccessPermissions",
+      "EntryPoints",
+      "FormControlOverrides",
+      "Label",
+      "Name"
+    ],
+    "sample_size": 200
+  },
+  "AxDataEntityView": {
+    "artifact_type": "AxDataEntityViewBase",
+    "required": [],
+    "recommended": [
+      "DeveloperDocumentation",
+      "EntityCategory",
+      "FieldGroups",
+      "Fields",
+      "IsPublic",
+      "IsReadOnly",
+      "Keys",
+      "Label",
+      "Mappings",
+      "Name",
+      "PrimaryKey",
+      "PublicCollectionName",
+      "PublicEntityName",
+      "Relations",
+      "SourceCode",
+      "StateMachines",
+      "ViewMetadata"
+    ],
+    "known": [
+      "DeveloperDocumentation",
+      "EntityCategory",
+      "FieldGroups",
+      "Fields",
+      "IsPublic",
+      "IsReadOnly",
+      "Keys",
+      "Label",
+      "Mappings",
+      "Name",
+      "PrimaryKey",
+      "PublicCollectionName",
+      "PublicEntityName",
+      "Relations",
+      "SourceCode",
+      "StateMachines",
+      "ViewMetadata"
+    ],
+    "sample_size": 2
+  },
+  "AxQuery": {
+    "artifact_type": "AxQuery",
+    "required": [
+      "DataSources",
+      "Name",
+      "SourceCode"
+    ],
+    "recommended": [],
+    "known": [
+      "AllowCheck",
+      "AllowCrossCompany",
+      "DataSources",
+      "Description",
+      "Form",
+      "Havings",
+      "Interactive",
+      "IsObsolete",
+      "Name",
+      "Query",
+      "QueryType",
+      "Ranges",
+      "SourceCode",
+      "Title",
+      "UserUpdate"
+    ],
+    "sample_size": 200
+  },
+  "AxMenuItemAction": {
+    "artifact_type": "AxMenuItemAction",
+    "required": [
+      "Name",
+      "Object",
+      "ObjectType"
+    ],
+    "recommended": [
+      "DisabledResource",
+      "Label",
+      "MaintainUserLicense",
+      "NormalResource",
+      "OperationalDomain",
+      "SubscriberAccessLevel",
+      "ViewUserLicense"
+    ],
+    "known": [
+      "AllowRootNavigation",
+      "ConfigurationKey",
+      "CopyCallerQuery",
+      "DisabledResource",
+      "EnumParameter",
+      "EnumTypeParameter",
+      "FeatureClass",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "LinkedPermissionObject",
+      "LinkedPermissionType",
+      "MaintainUserLicense",
+      "MultiSelect",
+      "Name",
+      "NeedsRecord",
+      "NormalImage",
+      "NormalResource",
+      "Object",
+      "ObjectType",
+      "OpenMode",
+      "OperationalDomain",
+      "Parameters",
+      "SubscriberAccessLevel",
+      "ViewUserLicense"
+    ],
+    "sample_size": 200
+  },
+  "AxView": {
+    "artifact_type": "AxView",
+    "required": [
+      "FieldGroups",
+      "Fields",
+      "Indexes",
+      "Mappings",
+      "Name",
+      "Relations",
+      "SourceCode",
+      "StateMachines",
+      "ViewMetadata"
+    ],
+    "recommended": [
+      "DeveloperDocumentation",
+      "Label"
+    ],
+    "known": [
+      "CollectionName",
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DeveloperDocumentation",
+      "FieldGroups",
+      "Fields",
+      "FormRef",
+      "Indexes",
+      "IsObsolete",
+      "IsPublic",
+      "Label",
+      "Mappings",
+      "Name",
+      "OperationalDomain",
+      "Query",
+      "Relations",
+      "SingularLabel",
+      "SourceCode",
+      "StateMachines",
+      "SubscriberAccessLevel",
+      "TableGroup",
+      "TitleField1",
+      "TitleField2",
+      "Updatable",
+      "ValidTimeStateEnabled",
+      "ViewMetadata",
+      "Visibility",
+      "Visible"
+    ],
+    "sample_size": 200
+  },
+  "AxResource": {
+    "artifact_type": "AxResource",
+    "required": [
+      "FileName",
+      "Name",
+      "RelativeUriInModelStore"
+    ],
+    "recommended": [
+      "TypeOfResource"
+    ],
+    "known": [
+      "FileName",
+      "IsObsolete",
+      "Name",
+      "RelativeUriInModelStore",
+      "TypeOfResource"
+    ],
+    "sample_size": 200
+  },
+  "AxMenuItemOutput": {
+    "artifact_type": "AxMenuItemOutput",
+    "required": [
+      "Label",
+      "MaintainUserLicense",
+      "Name",
+      "Object",
+      "ObjectType",
+      "ViewUserLicense"
+    ],
+    "recommended": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DisabledResource",
+      "LinkedPermissionObject",
+      "LinkedPermissionObjectChild",
+      "LinkedPermissionType",
+      "NormalResource"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DisabledResource",
+      "EnumParameter",
+      "EnumTypeParameter",
+      "FeatureClass",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "LinkedPermissionObject",
+      "LinkedPermissionObjectChild",
+      "LinkedPermissionType",
+      "MaintainUserLicense",
+      "MultiSelect",
+      "Name",
+      "NeedsRecord",
+      "NormalResource",
+      "Object",
+      "ObjectType",
+      "OperationalDomain",
+      "Parameters",
+      "ReportDesign",
+      "SubscriberAccessLevel",
+      "ViewUserLicense"
+    ],
+    "sample_size": 200
+  },
+  "AxFormExtension": {
+    "artifact_type": "AxFormExtension",
+    "required": [
+      "ControlModifications",
+      "Controls",
+      "DataSources",
+      "Name",
+      "Parts",
+      "PropertyModifications"
+    ],
+    "recommended": [
+      "DataSourceModifications",
+      "DataSourceReferences"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "ControlModifications",
+      "Controls",
+      "DataSourceModifications",
+      "DataSourceReferences",
+      "DataSources",
+      "Name",
+      "Parts",
+      "PropertyModifications"
+    ],
+    "sample_size": 200
+  },
+  "AxTableExtension": {
+    "artifact_type": "AxTableExtension",
+    "required": [
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "FieldModifications",
+      "Fields",
+      "Indexes",
+      "Mappings",
+      "Name",
+      "PropertyModifications",
+      "RelationExtensions",
+      "Relations"
+    ],
+    "recommended": [
+      "FullTextIndexes",
+      "RelationModifications"
+    ],
+    "known": [
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "FieldModifications",
+      "Fields",
+      "FullTextIndexes",
+      "Indexes",
+      "Mappings",
+      "Name",
+      "PropertyModifications",
+      "RelationExtensions",
+      "RelationModifications",
+      "Relations"
+    ],
+    "sample_size": 200
+  },
+  "AxReport": {
+    "artifact_type": "AxReport",
+    "required": [
+      "DataMethods",
+      "DataSets",
+      "DefaultParameterGroup",
+      "Designs",
+      "EmbeddedImages",
+      "Name"
+    ],
+    "recommended": [],
+    "known": [
+      "DataMethods",
+      "DataSets",
+      "DefaultParameterGroup",
+      "Designs",
+      "EmbeddedImages",
+      "IsObsolete",
+      "Name",
+      "Title"
+    ],
+    "sample_size": 200
+  },
+  "AxSecurityDuty": {
+    "artifact_type": "AxSecurityDuty",
+    "required": [
+      "Name",
+      "Privileges"
+    ],
+    "recommended": [
+      "Description",
+      "Label"
+    ],
+    "known": [
+      "ContextString",
+      "Description",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Privileges"
+    ],
+    "sample_size": 200
+  },
+  "AxTile": {
+    "artifact_type": "AxTile",
+    "required": [
+      "MenuItemName",
+      "Name"
+    ],
+    "recommended": [
+      "Type"
+    ],
+    "known": [
+      "ApplyFilter",
+      "ConfigurationKey",
+      "CopyCallerQuery",
+      "FormViewOption",
+      "HelpText",
+      "ImageLocation",
+      "IsObsolete",
+      "KPI",
+      "Label",
+      "MenuItemName",
+      "MenuItemType",
+      "Name",
+      "NormalImage",
+      "OpenMode",
+      "Query",
+      "RefreshFrequency",
+      "Size",
+      "TileDisplay",
+      "Type",
+      "URL"
+    ],
+    "sample_size": 200
+  },
+  "AxMacroDictionary": {
+    "artifact_type": "AxMacroDictionary",
+    "required": [
+      "Macros",
+      "Name",
+      "Source"
+    ],
+    "recommended": [],
+    "known": [
+      "Macros",
+      "Name",
+      "Source",
+      "Tags"
+    ],
+    "sample_size": 200
+  },
+  "AxSecurityDutyExtension": {
+    "artifact_type": "AxSecurityDutyExtension",
+    "required": [
+      "Name",
+      "Privileges"
+    ],
+    "recommended": [
+      "PropertyModifications"
+    ],
+    "known": [
+      "Name",
+      "Privileges",
+      "PropertyModifications"
+    ],
+    "sample_size": 199
+  },
+  "AxReference": {
+    "artifact_type": "AxReference",
+    "required": [
+      "AssemblyDisplayName",
+      "AssemblyName",
+      "Name",
+      "Version"
+    ],
+    "recommended": [
+      "PublicKeyToken",
+      "ServiceReference"
+    ],
+    "known": [
+      "AssemblyDisplayName",
+      "AssemblyName",
+      "Name",
+      "PublicKeyToken",
+      "ServiceReference",
+      "Version"
+    ],
+    "sample_size": 200
+  },
+  "AxConfigurationKey": {
+    "artifact_type": "AxConfigurationKey",
+    "required": [
+      "Label",
+      "Name"
+    ],
+    "recommended": [
+      "ParentKey"
+    ],
+    "known": [
+      "Enabled",
+      "EnabledByDefault",
+      "IsObsolete",
+      "Label",
+      "LicenseCode",
+      "Name",
+      "ParentKey",
+      "Tags"
+    ],
+    "sample_size": 200
+  },
+  "AxMap": {
+    "artifact_type": "AxMap",
+    "required": [
+      "FieldGroups",
+      "Fields",
+      "Mappings",
+      "Name",
+      "SourceCode"
+    ],
+    "recommended": [
+      "DeveloperDocumentation",
+      "Label"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DeveloperDocumentation",
+      "FieldGroups",
+      "Fields",
+      "FormRef",
+      "IsObsolete",
+      "Label",
+      "Mappings",
+      "Name",
+      "SourceCode",
+      "SubscriberAccessLevel",
+      "TableContents",
+      "TableGroup",
+      "TitleField1",
+      "TitleField2",
+      "Visible"
+    ],
+    "sample_size": 200
+  },
+  "AxDataEntityViewExtension": {
+    "artifact_type": "AxDataEntityViewExtension",
+    "required": [
+      "DataSources",
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "Fields",
+      "Mappings",
+      "Name",
+      "PropertyModifications",
+      "Relations"
+    ],
+    "recommended": [
+      "FieldModifications"
+    ],
+    "known": [
+      "DataSources",
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "FieldModifications",
+      "Fields",
+      "Mappings",
+      "Name",
+      "PropertyModifications",
+      "Relations"
+    ],
+    "sample_size": 198
+  },
+  "IgnoreDiagnostics": {
+    "artifact_type": "AxIgnoreDiagnosticList",
+    "required": [
+      "Items",
+      "Name"
+    ],
+    "recommended": [],
+    "known": [
+      "Items",
+      "Name"
+    ],
+    "sample_size": 197
+  },
+  "AxSecurityRoleExtension": {
+    "artifact_type": "AxSecurityRoleExtension",
+    "required": [
+      "Duties",
+      "Name",
+      "Privileges"
+    ],
+    "recommended": [
+      "DirectAccessPermissions",
+      "PropertyModifications"
+    ],
+    "known": [
+      "DirectAccessPermissions",
+      "Duties",
+      "Name",
+      "Privileges",
+      "PropertyModifications"
+    ],
+    "sample_size": 200
+  },
+  "AxAggregateDimension": {
+    "artifact_type": "AxAggregateDimension",
+    "required": [
+      "Attributes",
+      "Hierarchies",
+      "Name",
+      "Table"
+    ],
+    "recommended": [
+      "KeyErrorAction",
+      "Label"
+    ],
+    "known": [
+      "Attributes",
+      "CalendarName",
+      "Hierarchies",
+      "IsObsolete",
+      "KeyErrorAction",
+      "Label",
+      "Name",
+      "NullKeyConvertedToUnknown",
+      "NullKeyNotAllowed",
+      "Table",
+      "Type"
+    ],
+    "sample_size": 200
+  },
+  "AxEnumExtension": {
+    "artifact_type": "AxEnumExtension",
+    "required": [
+      "EnumValues",
+      "Name",
+      "PropertyModifications"
+    ],
+    "recommended": [
+      "ValueModifications"
+    ],
+    "known": [
+      "EnumValues",
+      "Name",
+      "PropertyModifications",
+      "ValueModifications"
+    ],
+    "sample_size": 200
+  },
+  "AxMenuExtension": {
+    "artifact_type": "AxMenuExtension",
+    "required": [
+      "Customizations",
+      "Elements",
+      "Name"
+    ],
+    "recommended": [
+      "MenuElementModifications",
+      "PropertyModifications"
+    ],
+    "known": [
+      "Customizations",
+      "Elements",
+      "MenuElementModifications",
+      "Name",
+      "PropertyModifications"
+    ],
+    "sample_size": 200
+  },
+  "AxFormPart": {
+    "artifact_type": "AxFormPart",
+    "required": [
+      "Caption",
+      "Form",
+      "Name"
+    ],
+    "recommended": [],
+    "known": [
+      "Caption",
+      "Form",
+      "Name"
+    ],
+    "sample_size": 200
+  },
+  "RuleSet": {
+    "artifact_type": "AxRuleSet",
+    "required": [
+      "Name",
+      "Rules"
+    ],
+    "recommended": [],
+    "known": [
+      "Name",
+      "Rules"
+    ],
+    "sample_size": 139
+  },
+  "AxSecurityRole": {
+    "artifact_type": "AxSecurityRole",
+    "required": [
+      "DirectAccessPermissions",
+      "Duties",
+      "Name",
+      "Privileges",
+      "SubRoles"
+    ],
+    "recommended": [
+      "Description",
+      "Label"
+    ],
+    "known": [
+      "CanBeDeletedFromUI",
+      "ContextString",
+      "Description",
+      "DirectAccessPermissions",
+      "Duties",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Privileges",
+      "SubRoles"
+    ],
+    "sample_size": 133
+  },
+  "AxWorkflowTemplate": {
+    "artifact_type": "AxWorkflowTemplate",
+    "required": [
+      "Category",
+      "Document",
+      "HelpText",
+      "Label",
+      "LineItemWorkflows",
+      "Name",
+      "SupportedElements"
+    ],
+    "recommended": [
+      "CancelMenuItem",
+      "CanceledEventHandler",
+      "CompletedEventHandler",
+      "ConfigurationKey",
+      "DocumentMenuItem",
+      "StartedEventHandler",
+      "SubmitToWorkflowMenuItem"
+    ],
+    "known": [
+      "AssociationType",
+      "CancelMenuItem",
+      "CanceledEventHandler",
+      "CanceledStateMachine",
+      "CanceledStateMachineTargetState",
+      "Category",
+      "CompletedEventHandler",
+      "CompletedStateMachine",
+      "CompletedStateMachineTargetState",
+      "ConfigDataChangeEventHandler",
+      "ConfigurationKey",
+      "DisableActivationConditions",
+      "Document",
+      "DocumentMenuItem",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "LineItemWorkflows",
+      "Name",
+      "StartedEventHandler",
+      "SubmitToWorkflowMenuItem",
+      "SupportedElements"
+    ],
+    "sample_size": 125
+  },
+  "AxSecurityPolicy": {
+    "artifact_type": "AxSecurityPolicy",
+    "required": [
+      "ConstrainedTables",
+      "Name",
+      "PrimaryTable",
+      "Query"
+    ],
+    "recommended": [
+      "ConstrainedTable",
+      "Label"
+    ],
+    "known": [
+      "ConstrainedTable",
+      "ConstrainedTables",
+      "ContextString",
+      "ContextType",
+      "Enabled",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Operation",
+      "PrimaryTable",
+      "Query",
+      "RoleName",
+      "UseNotExistJoin"
+    ],
+    "sample_size": 117
+  },
+  "AxWorkflowApproval": {
+    "artifact_type": "AxWorkflowApproval",
+    "required": [
+      "Approve",
+      "DelegateMenuItem",
+      "Deny",
+      "Document",
+      "DocumentMenuItem",
+      "Label",
+      "Name",
+      "Reject",
+      "RequestChange",
+      "ResubmitMenuItem"
+    ],
+    "recommended": [
+      "CanceledEventHandler",
+      "ConfigurationKey",
+      "DocumentPreviewFieldGroup",
+      "HelpText",
+      "StartedEventHandler"
+    ],
+    "known": [
+      "Approve",
+      "CanceledEventHandler",
+      "ConfigurationKey",
+      "DelegateMenuItem",
+      "Deny",
+      "Document",
+      "DocumentMenuItem",
+      "DocumentPreviewFieldGroup",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Reject",
+      "RequestChange",
+      "ResubmitMenuItem",
+      "StartedEventHandler",
+      "StartedStateMachine",
+      "StartedStateMachineTargetState",
+      "WorkItemsCreatedEventHandler"
+    ],
+    "sample_size": 117
+  },
+  "AxPartCue": {
+    "artifact_type": "AxPartCue",
+    "required": [
+      "CueMax",
+      "DataField",
+      "Label",
+      "MenuItemName",
+      "Name",
+      "PreviewPartReference",
+      "ShowAlert",
+      "ShowAlertValue",
+      "ShowAlertWhen",
+      "ShowSum",
+      "Table"
+    ],
+    "recommended": [],
+    "known": [
+      "CueMax",
+      "DataField",
+      "Label",
+      "MenuItemName",
+      "Name",
+      "PreviewPartReference",
+      "ShowAlert",
+      "ShowAlertValue",
+      "ShowAlertWhen",
+      "ShowSum",
+      "Table"
+    ],
+    "sample_size": 106
+  },
+  "AxService": {
+    "artifact_type": "AxService",
+    "required": [
+      "Class",
+      "ExternalName",
+      "Name",
+      "ServiceOperations"
+    ],
+    "recommended": [],
+    "known": [
+      "Class",
+      "Description",
+      "ExternalName",
+      "IsObsolete",
+      "Name",
+      "Namespace",
+      "ServiceOperations"
+    ],
+    "sample_size": 102
+  },
+  "AxMenu": {
+    "artifact_type": "AxMenu",
+    "required": [
+      "Elements",
+      "Name"
+    ],
+    "recommended": [
+      "Label",
+      "SetCompany"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "Elements",
+      "FeatureClass",
+      "IsObsolete",
+      "Label",
+      "MenuItemName",
+      "Name",
+      "NormalImage",
+      "SetCompany"
+    ],
+    "sample_size": 78
+  },
+  "AxLicenseCode": {
+    "artifact_type": "AxLicenseCode",
+    "required": [
+      "Label",
+      "Name",
+      "PublicKey"
+    ],
+    "recommended": [
+      "Group",
+      "Package",
+      "Prerequisite1"
+    ],
+    "known": [
+      "Group",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "Package",
+      "Prerequisite1",
+      "Prerequisite2",
+      "Prerequisite3",
+      "Prerequisite4",
+      "PublicKey",
+      "Type"
+    ],
+    "sample_size": 74
+  },
+  "AxAggregateMeasurement": {
+    "artifact_type": "AxAggregateMeasurement",
+    "required": [
+      "MeasureGroups",
+      "Name"
+    ],
+    "recommended": [
+      "Label",
+      "Usage"
+    ],
+    "known": [
+      "IsObsolete",
+      "Label",
+      "MeasureGroups",
+      "Name",
+      "Usage"
+    ],
+    "sample_size": 67
+  },
+  "AxCompositeDataEntityView": {
+    "artifact_type": "AxCompositeDataEntityView",
+    "required": [
+      "Label",
+      "Name",
+      "RootDataEntities",
+      "SourceCode"
+    ],
+    "recommended": [
+      "ConfigurationKey",
+      "DeveloperDocumentation",
+      "EntityCategory",
+      "FormRef",
+      "Modules",
+      "Tags"
+    ],
+    "known": [
+      "ConfigurationKey",
+      "CountryRegionCodes",
+      "DeveloperDocumentation",
+      "EnableSetBasedSqlOperations",
+      "EntityCategory",
+      "FormRef",
+      "IsObsolete",
+      "IsReadOnly",
+      "Label",
+      "Modules",
+      "Name",
+      "PublicCollectionName",
+      "PublicEntityName",
+      "RootDataEntities",
+      "SourceCode",
+      "SubscriberAccessLevel",
+      "Tags"
+    ],
+    "sample_size": 65
+  },
+  "AxServiceGroup": {
+    "artifact_type": "AxServiceGroup",
+    "required": [
+      "Name",
+      "Services"
+    ],
+    "recommended": [
+      "AutoDeploy",
+      "Description"
+    ],
+    "known": [
+      "AutoDeploy",
+      "Description",
+      "IsObsolete",
+      "Name",
+      "Services"
+    ],
+    "sample_size": 57
+  },
+  "AxWorkflowTask": {
+    "artifact_type": "AxWorkflowTask",
+    "required": [
+      "DelegateMenuItem",
+      "Document",
+      "DocumentMenuItem",
+      "HelpText",
+      "Label",
+      "Name",
+      "WorkflowOutcomes"
+    ],
+    "recommended": [
+      "CanceledEventHandler",
+      "ConfigurationKey",
+      "DocumentPreviewFieldGroup",
+      "ResubmitMenuItem",
+      "StartedEventHandler"
+    ],
+    "known": [
+      "CanceledEventHandler",
+      "ConfigurationKey",
+      "DelegateMenuItem",
+      "Document",
+      "DocumentMenuItem",
+      "DocumentPreviewFieldGroup",
+      "HelpText",
+      "IsObsolete",
+      "Label",
+      "Name",
+      "ResubmitMenuItem",
+      "StartedEventHandler",
+      "WorkItemsCreatedEventHandler",
+      "WorkflowOutcomes"
+    ],
+    "sample_size": 49
+  },
+  "AxPartCueGroup": {
+    "artifact_type": "AxPartCueGroup",
+    "required": [
+      "Cues",
+      "Label",
+      "Name"
+    ],
+    "recommended": [],
+    "known": [
+      "Cues",
+      "Label",
+      "Name"
+    ],
+    "sample_size": 46
+  },
+  "AxWorkflowCategory": {
+    "artifact_type": "AxWorkflowCategory",
+    "required": [
+      "Label",
+      "Name"
+    ],
+    "recommended": [
+      "HelpText",
+      "Module"
+    ],
+    "known": [
+      "HelpText",
+      "Label",
+      "Module",
+      "Name"
+    ],
+    "sample_size": 37
+  },
+  "AxViewExtension": {
+    "artifact_type": "AxViewExtension",
+    "required": [
+      "DataSources",
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "Fields",
+      "Mappings",
+      "Name",
+      "PropertyModifications"
+    ],
+    "recommended": [
+      "FieldModifications",
+      "Ranges"
+    ],
+    "known": [
+      "DataSources",
+      "FieldGroupExtensions",
+      "FieldGroups",
+      "FieldModifications",
+      "Fields",
+      "Mappings",
+      "Name",
+      "PropertyModifications",
+      "Ranges"
+    ],
+    "sample_size": 34
+  },
+  "AxWorkflowAutomatedTask": {
+    "artifact_type": "AxWorkflowAutomatedTask",
+    "required": [
+      "Document",
+      "ExecutionEventHandler",
+      "Label",
+      "Name"
+    ],
+    "recommended": [
+      "ConfigurationKey",
+      "HelpText"
+    ],
+    "known": [
+      "CanceledEventHandler",
+      "ConfigurationKey",
+      "Document",
+      "ExecutionEventHandler",
+      "HelpText",
+      "Label",
+      "Name"
+    ],
+    "sample_size": 28
+  },
+  "AxQuerySimpleExtension": {
+    "artifact_type": "AxQuerySimpleExtension",
+    "required": [
+      "DataSources",
+      "Fields",
+      "Name",
+      "Ranges"
+    ],
+    "recommended": [
+      "OrderByFields",
+      "PropertyModifications",
+      "RangeModifications",
+      "Relations",
+      "RootDataSources"
+    ],
+    "known": [
+      "DataSources",
+      "Fields",
+      "Name",
+      "OrderByFields",
+      "PropertyModifications",
+      "RangeModifications",
+      "Ranges",
+      "Relations",
+      "RootDataSources"
+    ],
+    "sample_size": 27
+  },
+  "AxAggregateDataEntity": {
+    "artifact_type": "AxAggregateDataEntity",
+    "required": [
+      "AggregateViewDataSource",
+      "FieldGroups",
+      "Fields",
+      "Keys",
+      "Name",
+      "Relations",
+      "SourceCode"
+    ],
+    "recommended": [
+      "IsPublic",
+      "IsReadOnly",
+      "PrimaryKey",
+      "PublicCollectionName",
+      "PublicEntityName"
+    ],
+    "known": [
+      "AggregateViewDataSource",
+      "ConfigurationKey",
+      "DeveloperDocumentation",
+      "EntityCategory",
+      "FieldGroups",
+      "Fields",
+      "IsPublic",
+      "IsReadOnly",
+      "Keys",
+      "Name",
+      "PrimaryCompanyContext",
+      "PrimaryKey",
+      "PublicCollectionName",
+      "PublicEntityName",
+      "Relations",
+      "SourceCode"
+    ],
+    "sample_size": 24
+  },
+  "AxEdtExtension": {
+    "artifact_type": "AxEdtExtension",
+    "required": [
+      "ArrayElements",
+      "Name",
+      "PropertyModifications"
+    ],
+    "recommended": [],
+    "known": [
+      "ArrayElements",
+      "Name",
+      "PropertyModifications"
+    ],
+    "sample_size": 16
+  },
+  "AxWorkflowParticipantAssignmentProvider": {
+    "artifact_type": "AxWorkflowParticipantAssignmentProvider",
+    "required": [
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "recommended": [
+      "AssociationType",
+      "AvailableForAllWorkflowTemplates"
+    ],
+    "known": [
+      "AssociationType",
+      "AvailableForAllWorkflowTemplates",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "sample_size": 15
+  },
+  "AxReportXYChartStyleTemplate": {
+    "artifact_type": "AxReportXYChartStyleTemplate",
+    "required": [
+      "ChartAreaStyle",
+      "DataSeriesStyling",
+      "FooterStyle",
+      "LegendStyleTemplate",
+      "Name",
+      "Palette",
+      "PlotAreaStyle",
+      "PointLabelStyling",
+      "ThreeDStyling",
+      "TitleStyle",
+      "XAxisStyle",
+      "YAxisStyle"
+    ],
+    "recommended": [],
+    "known": [
+      "ChartAreaStyle",
+      "DataSeriesStyling",
+      "FooterStyle",
+      "LegendStyleTemplate",
+      "Name",
+      "Palette",
+      "PlotAreaStyle",
+      "PointLabelStyling",
+      "ThreeDStyling",
+      "TitleStyle",
+      "XAxisStyle",
+      "YAxisStyle"
+    ],
+    "sample_size": 8
+  },
+  "AxMenuItemActionExtension": {
+    "artifact_type": "AxMenuItemActionExtension",
+    "required": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "recommended": [],
+    "known": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "sample_size": 7
+  },
+  "AxKPI": {
+    "artifact_type": "AxKPI",
+    "required": [
+      "Goal",
+      "Label",
+      "Measurement",
+      "Name",
+      "Value"
+    ],
+    "recommended": [
+      "BadThreshold",
+      "GoodThreshold",
+      "HelpText",
+      "ThresholdType",
+      "Trends"
+    ],
+    "known": [
+      "BadThreshold",
+      "Goal",
+      "GoodThreshold",
+      "HelpText",
+      "Label",
+      "Measurement",
+      "Name",
+      "RefreshFrequency",
+      "ScoringPattern",
+      "ShowStatus",
+      "ThresholdType",
+      "Trends",
+      "Value"
+    ],
+    "sample_size": 6
+  },
+  "AxInfoPart": {
+    "artifact_type": "AxInfoPart",
+    "required": [],
+    "recommended": [
+      "Actions",
+      "Caption",
+      "LayoutGroups",
+      "Name",
+      "Query",
+      "ShowMore",
+      "ShowMoreDataSource"
+    ],
+    "known": [
+      "Actions",
+      "Caption",
+      "LayoutGroups",
+      "Name",
+      "Query",
+      "ShowMore",
+      "ShowMoreDataSource"
+    ],
+    "sample_size": 4
+  },
+  "AxReportLayoutTemplate": {
+    "artifact_type": "AxReportLayoutTemplate",
+    "required": [],
+    "recommended": [
+      "BodySectionStyle",
+      "FooterSectionStyle",
+      "FooterTemplate",
+      "HeaderTemplate",
+      "Name",
+      "PageHeaderSectionStyle",
+      "ParameterRowStyle"
+    ],
+    "known": [
+      "BodySectionStyle",
+      "FooterSectionStyle",
+      "FooterTemplate",
+      "HeaderTemplate",
+      "Name",
+      "PageHeaderSectionStyle",
+      "ParameterRowStyle"
+    ],
+    "sample_size": 4
+  },
+  "AxReportTableStyleTemplate": {
+    "artifact_type": "AxReportTableStyleTemplate",
+    "required": [],
+    "recommended": [
+      "DetailRowStyle",
+      "DrillThroughLinkStyle",
+      "GrandTotalStyle",
+      "GroupLevel1FooterAggregateStyle",
+      "GroupLevel1Style",
+      "GroupLevel2FooterAggregateStyle",
+      "GroupLevel2Style",
+      "GroupLevel3FooterAggregateStyle",
+      "GroupLevel3Style",
+      "Name",
+      "Spacing",
+      "TableSectionStyle",
+      "TitleStyle"
+    ],
+    "known": [
+      "DetailRowStyle",
+      "DrillThroughLinkStyle",
+      "GrandTotalStyle",
+      "GroupLevel1FooterAggregateStyle",
+      "GroupLevel1Style",
+      "GroupLevel2FooterAggregateStyle",
+      "GroupLevel2Style",
+      "GroupLevel3FooterAggregateStyle",
+      "GroupLevel3Style",
+      "Name",
+      "Spacing",
+      "TableSectionStyle",
+      "TitleStyle"
+    ],
+    "sample_size": 4
+  },
+  "AxAggregateCalculatedMeasureTemplate": {
+    "artifact_type": "AxAggregateCalculatedMeasureTemplate",
+    "required": [],
+    "recommended": [
+      "Expression",
+      "Name"
+    ],
+    "known": [
+      "Expression",
+      "Name"
+    ],
+    "sample_size": 3
+  },
+  "AxMenuItemOutputExtension": {
+    "artifact_type": "AxMenuItemOutputExtension",
+    "required": [],
+    "recommended": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "known": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "sample_size": 3
+  },
+  "doc": {
+    "artifact_type": "AxReportVmRoleStartupTask",
+    "required": [],
+    "recommended": [
+      "assembly",
+      "members"
+    ],
+    "known": [
+      "assembly",
+      "members"
+    ],
+    "sample_size": 3
+  },
+  "AxWorkflowHierarchyAssignmentProvider": {
+    "artifact_type": "AxWorkflowHierarchyAssignmentProvider",
+    "required": [],
+    "recommended": [
+      "AssociationType",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "known": [
+      "AssociationType",
+      "AvailableForAllWorkflowTemplates",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "sample_size": 3
+  },
+  "AxMenuItemDisplayExtension": {
+    "artifact_type": "AxMenuItemDisplayExtension",
+    "required": [],
+    "recommended": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "known": [
+      "Name",
+      "PropertyModifications"
+    ],
+    "sample_size": 2
+  },
+  "AxTableCollection": {
+    "artifact_type": "AxTableCollection",
+    "required": [],
+    "recommended": [
+      "Name",
+      "Tables"
+    ],
+    "known": [
+      "Name",
+      "Tables"
+    ],
+    "sample_size": 2
+  },
+  "AxTypeForwarderList": {
+    "artifact_type": "AxTypeForwarderList",
+    "required": [],
+    "recommended": [
+      "Name",
+      "TargetModule",
+      "TypeForwarders"
+    ],
+    "known": [
+      "Name",
+      "TargetModule",
+      "TypeForwarders"
+    ],
+    "sample_size": 2
+  },
+  "AxWorkflowDueDateCalculationProvider": {
+    "artifact_type": "AxWorkflowDueDateCalculationProvider",
+    "required": [],
+    "recommended": [
+      "AssociationType",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "known": [
+      "AssociationType",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "sample_size": 2
+  },
+  "AxWorkflowQueueAssignmentProvider": {
+    "artifact_type": "AxWorkflowQueueAssignmentProvider",
+    "required": [],
+    "recommended": [
+      "AssociationType",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "known": [
+      "AssociationType",
+      "HelpText",
+      "Label",
+      "Name",
+      "ProviderClass",
+      "WorkflowTemplates"
+    ],
+    "sample_size": 2
+  },
+  "AxConfigurationKeyGroup": {
+    "artifact_type": "AxConfigurationKeyGroup",
+    "required": [],
+    "recommended": [
+      "ConfigurationKeys",
+      "Label",
+      "LicenseCode",
+      "Name"
+    ],
+    "known": [
+      "ConfigurationKeys",
+      "Label",
+      "LicenseCode",
+      "Name"
+    ],
+    "sample_size": 1
+  },
+  "AxPage": {
+    "artifact_type": "AxPage",
+    "required": [],
+    "recommended": [
+      "DataSources",
+      "Design",
+      "Name"
+    ],
+    "known": [
+      "DataSources",
+      "Design",
+      "Name"
+    ],
+    "sample_size": 1
+  },
+  "AxReportListStyleTemplate": {
+    "artifact_type": "AxReportListStyleTemplate",
+    "required": [],
+    "recommended": [
+      "DataSectionStyle",
+      "DrillThroughLinkStyle",
+      "FieldGroupCaptionStyle",
+      "FieldStyle",
+      "GrandTotalStyle",
+      "ListSectionStyle",
+      "Name",
+      "Spacing",
+      "TitleStyle"
+    ],
+    "known": [
+      "DataSectionStyle",
+      "DrillThroughLinkStyle",
+      "FieldGroupCaptionStyle",
+      "FieldStyle",
+      "GrandTotalStyle",
+      "ListSectionStyle",
+      "Name",
+      "Spacing",
+      "TitleStyle"
+    ],
+    "sample_size": 1
+  },
+  "AxReportMatrixStyleTemplate": {
+    "artifact_type": "AxReportMatrixStyleTemplate",
+    "required": [],
+    "recommended": [
+      "ColumnGrouping1CaptionStyle",
+      "ColumnGrouping2CaptionStyle",
+      "ColumnGrouping3CaptionStyle",
+      "DataStyle",
+      "DrillThroughLinkStyle",
+      "MatrixSectionStyle",
+      "Name",
+      "RowGrouping1Style",
+      "RowGrouping2Style",
+      "RowGrouping3Style",
+      "Spacing",
+      "TitleStyle"
+    ],
+    "known": [
+      "ColumnGrouping1CaptionStyle",
+      "ColumnGrouping2CaptionStyle",
+      "ColumnGrouping3CaptionStyle",
+      "DataStyle",
+      "DrillThroughLinkStyle",
+      "MatrixSectionStyle",
+      "Name",
+      "RowGrouping1Style",
+      "RowGrouping2Style",
+      "RowGrouping3Style",
+      "Spacing",
+      "TitleStyle"
+    ],
+    "sample_size": 1
+  }
+}
