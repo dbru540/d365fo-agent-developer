@@ -6,7 +6,7 @@ set -u
 cd "$(dirname "$0")/.."
 
 REPO_ROOT="$(pwd)"
-PACKAGES_ROOT="$REPO_ROOT/D365_repo/BabilouFinOps/PackagesLocalDirectory"
+PACKAGES_ROOT="$REPO_ROOT/D365_repo/Contoso/PackagesLocalDirectory"
 PROGRESS_LOG="$REPO_ROOT/.omx/graphify-wave1-progress.log"
 LOGS_DIR="$REPO_ROOT/.omx/logs"
 mkdir -p "$LOGS_DIR"

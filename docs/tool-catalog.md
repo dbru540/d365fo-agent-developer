@@ -15,8 +15,8 @@ Example:
 ```powershell
 $env:PYTHONPATH='src'
 python -m d365fo_agent.cli inventory `
-  --repo-root .\D365_repo\BabilouFinOps `
-  --rules .\config\babiloufinops.rules.json
+  --repo-root .\D365_repo\Contoso `
+  --rules .\config\contoso.rules.json
 ```
 
 Output:
@@ -34,8 +34,8 @@ Example:
 ```powershell
 $env:PYTHONPATH='src'
 python -m d365fo_agent.cli find-element `
-  --repo-root .\D365_repo\BabilouFinOps `
-  --rules .\config\babiloufinops.rules.json `
+  --repo-root .\D365_repo\Contoso `
+  --rules .\config\contoso.rules.json `
   --name BABCheque_BOA
 ```
 

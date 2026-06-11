@@ -1,5 +1,5 @@
 param(
-    [string]$PackagesRoot = "C:\Users\DavidBru\FIVEFORTY\Documents\_WORK\540\_AI\x++\D365_repo\BabilouFinOps\PackagesLocalDirectory",
+    [string]$PackagesRoot = "D365_repo\Contoso\PackagesLocalDirectory",
     [string[]]$Packages,
     [switch]$NoViz = $true
 )

@@ -21,13 +21,13 @@ This folder holds Markdown specs translated from real historical tickets, used t
 ```bash
 cd <repo-root>
 PYTHONPATH=src python -m d365fo_agent.cli analyze-spec \
-  --repo-root D365_repo/BabilouFinOps \
-  --rules config/babiloufinops.rules.json \
+  --repo-root D365_repo/Contoso \
+  --rules config/contoso.rules.json \
   --spec specs/real/<ticket-id>.md
 
 PYTHONPATH=src python -m d365fo_agent.cli generate-from-spec \
-  --repo-root D365_repo/BabilouFinOps \
-  --rules config/babiloufinops.rules.json \
+  --repo-root D365_repo/Contoso \
+  --rules config/contoso.rules.json \
   --spec specs/real/<ticket-id>.md \
   --output-dir .omx/verify-real-<ticket-id>
 ```

@@ -52,10 +52,10 @@ The server reads a SQLite FTS5 index. Build it (custom corpus + the standard
 ```powershell
 $env:PYTHONPATH='src'
 python -m d365fo_agent.cli build-index `
-  --repo-root .\D365_repo\BabilouFinOps `
-  --rules .\config\babiloufinops.rules.json `
+  --repo-root .\D365_repo\Contoso `
+  --rules .\config\contoso.rules.json `
   --db .\.omx\index\d365fo.db `
-  --packages-root .\D365_repo\BabilouFinOps\PackagesLocalDirectory `
+  --packages-root .\D365_repo\Contoso\PackagesLocalDirectory `
   --rebuild
 ```
 
@@ -73,10 +73,10 @@ corpus changes; omit `--packages-root` to index only the custom code.
       "command": "python",
       "args": [
         "-m", "d365fo_agent.cli", "serve-mcp",
-        "--repo-root", "D365_repo/BabilouFinOps",
-        "--rules", "config/babiloufinops.rules.json",
+        "--repo-root", "D365_repo/Contoso",
+        "--rules", "config/contoso.rules.json",
         "--db", ".omx/index/d365fo.db",
-        "--packages-root", "D365_repo/BabilouFinOps/PackagesLocalDirectory"
+        "--packages-root", "D365_repo/Contoso/PackagesLocalDirectory"
       ],
       "env": { "PYTHONPATH": "src" }
     }
@@ -106,10 +106,10 @@ relative paths), so no rebuild is needed when switching.
       "command": "python3",
       "args": [
         "-m", "d365fo_agent.cli", "serve-mcp",
-        "--repo-root", "D365_repo/BabilouFinOps",
-        "--rules", "config/babiloufinops.rules.json",
+        "--repo-root", "D365_repo/Contoso",
+        "--rules", "config/contoso.rules.json",
         "--db", ".omx/index/d365fo.db",
-        "--packages-root", "D365_repo/BabilouFinOps/PackagesLocalDirectory"
+        "--packages-root", "D365_repo/Contoso/PackagesLocalDirectory"
       ],
       "env": { "PYTHONPATH": "src" }
     }
@@ -127,7 +127,7 @@ relative paths), so no rebuild is needed when switching.
       "command": "wsl.exe",
       "args": [
         "-e", "bash", "-c",
-        "cd '/mnt/c/Users/DavidBru/FIVEFORTY/Documents/_WORK/540/_AI/x++' && PYTHONPATH=src python3 -m d365fo_agent.cli serve-mcp --repo-root D365_repo/BabilouFinOps --rules config/babiloufinops.rules.json --db .omx/index/d365fo.db --packages-root D365_repo/BabilouFinOps/PackagesLocalDirectory"
+        "cd '/path/to/d365fo-agent' && PYTHONPATH=src python3 -m d365fo_agent.cli serve-mcp --repo-root D365_repo/Contoso --rules config/contoso.rules.json --db .omx/index/d365fo.db --packages-root D365_repo/Contoso/PackagesLocalDirectory"
       ]
     }
   }
@@ -245,7 +245,7 @@ CLI: `python -m d365fo_agent.cli compile-model --packages-root <PLD> --model <Mo
 ```powershell
 $env:PYTHONPATH='src'
 '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{}}}' |
-  python -m d365fo_agent.cli serve-mcp --repo-root .\D365_repo\BabilouFinOps --rules .\config\babiloufinops.rules.json --db .\.omx\index\d365fo.db
+  python -m d365fo_agent.cli serve-mcp --repo-root .\D365_repo\Contoso --rules .\config\contoso.rules.json --db .\.omx\index\d365fo.db
 ```
 
 A JSON-RPC `initialize` result on stdout means the server is live.

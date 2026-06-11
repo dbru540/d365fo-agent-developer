@@ -10,7 +10,7 @@ The current implementation is the local foundation for that platform. It is not 
 
 ### 1. Corpus Rules
 
-`config/babiloufinops.rules.json` is the pilot classification policy for the sample client repo.
+`config/contoso.rules.json` is the pilot classification policy for the sample client repo.
 
 - Default classification: `custom-canonical`
 - Known ISV/reference models: `BHSLicenseBase`, `CDC`, `CDI`, `CLI`, `EBEssentials`, `EBImportMedia`, `EBResources`, `EBSearchMedia`

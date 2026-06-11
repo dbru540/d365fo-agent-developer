@@ -4,7 +4,7 @@
 
 These benchmark families turn the client repo into a measurable pilot instead of a vague demo corpus.
 
-The cases below are grounded in the current repository structure under `D365_repo/BabilouFinOps`.
+The cases below are grounded in the current repository structure under `D365_repo/Contoso`.
 
 ## Approved Benchmark Families
 

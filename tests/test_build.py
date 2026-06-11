@@ -1,3 +1,4 @@
+import os
 import shutil
 import unittest
 from pathlib import Path
@@ -22,8 +23,17 @@ Errors: 0
 Warnings: 2
 """
 
-# Real PackagesLocalDirectory on this dev box — present here, absent in CI / other machines.
-_REAL_PLD = Path(__file__).resolve().parents[1] / "D365_repo" / "BabilouFinOps" / "PackagesLocalDirectory"
+# Real PackagesLocalDirectory for the skip-guarded integration tests — present on a D365 dev box,
+# absent in CI / other machines. Override with D365FO_TEST_PLD, else the first D365_repo/*/ match.
+def _find_real_pld() -> Path:
+    override = os.environ.get("D365FO_TEST_PLD")
+    if override:
+        return Path(override)
+    candidates = sorted((Path(__file__).resolve().parents[1] / "D365_repo").glob("*/PackagesLocalDirectory"))
+    return candidates[0] if candidates else Path("PackagesLocalDirectory-absent")
+
+
+_REAL_PLD = _find_real_pld()
 _XPPC_AVAILABLE = (_REAL_PLD / "bin" / "xppc.exe").exists()
 
 

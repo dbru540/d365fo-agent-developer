@@ -2,8 +2,8 @@
 
 ## First 30 Days
 
-- Lock the pilot corpus around `D365_repo/BabilouFinOps`
-- Review and refine `config/babiloufinops.rules.json` with domain owners
+- Lock the pilot corpus around `D365_repo/Contoso`
+- Review and refine `config/contoso.rules.json` with domain owners
 - Persist the current local catalog into PostgreSQL-backed storage
 - Add repo-level inventory exports and artifact snapshots to the ingestion workflow
 - Assemble the first 10 benchmark cases from real project history

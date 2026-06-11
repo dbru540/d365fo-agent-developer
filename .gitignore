@@ -4,6 +4,12 @@ PackagesLocalDirectory.zip.*
 src.zip
 release/
 
+# Client-specific config & internal working notes — keep local only
+config/client.rules.json
+tasks/
+d365fo-ai-agent-expert-plan.md
+d365fo-ai-agent-implementation-plan.md
+
 # Agent/session state
 .claude/
 .omc/

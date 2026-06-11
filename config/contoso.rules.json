@@ -1,0 +1,20 @@
+{
+  "default_classification": "custom-canonical",
+  "rules": [
+    {
+      "match": "model_exact",
+      "value": "IsvLicensingModule",
+      "classification": "isv-reference"
+    },
+    {
+      "match": "model_exact",
+      "value": "IsvVerticalSolution",
+      "classification": "isv-reference"
+    },
+    {
+      "match": "path_contains",
+      "value": "\\legacy\\",
+      "classification": "legacy-deprecated"
+    }
+  ]
+}
