@@ -62,6 +62,12 @@ python -m d365fo_agent.cli build-index `
 This indexes ~167k artifacts (custom + standard) in seconds. Re-run with `--rebuild` after the
 corpus changes; omit `--packages-root` to index only the custom code.
 
+`--repo-root` is repeatable: pass it once per custom corpus and they are merged into one
+index in a single pass (rebuilding the custom side replaces ALL custom rows, so always list
+every corpus together). Source layouts `src/xplusplus/models` and `xplusplus/models` are both
+detected. When serving, pass each additional corpus to `serve-mcp` with `--extra-root <path>`
+so the source-reading tools (signatures, examples, scaffold) can resolve its XML files.
+
 ## Wiring it into a coding agent
 
 ### Claude Code (`.mcp.json` in the project root)

@@ -54,6 +54,7 @@ class D365MCPServer:
         packages_root: Path | None,
         methodology_path: Path | None,
         lint_config: "linter.LintConfig | None" = None,
+        extra_roots: "list[Path] | None" = None,
     ) -> None:
         self.repo_root = repo_root
         self.rules_path = rules_path
@@ -61,7 +62,9 @@ class D365MCPServer:
         self.packages_root = packages_root
         self.methodology_path = methodology_path
         self.lint_config = lint_config or linter.LintConfig()
-        self.file_roots = [repo_root] + ([packages_root] if packages_root else [])
+        # extra_roots: additional source corpora indexed into the same DB (their relative_path
+        # values resolve from their own root) — e.g. a second client repo.
+        self.file_roots = [repo_root, *(extra_roots or [])] + ([packages_root] if packages_root else [])
         self._index: D365Index | None = None
         self._catalog: Any = None  # lazily built; reused across calls
         self._type_profiles: dict[str, dict[str, Any]] | None = None
@@ -690,6 +693,7 @@ def build_server_from_config(
     packages_root: str | Path | None = None,
     methodology_path: str | Path | None = None,
     lint_rules_path: str | Path | None = None,
+    extra_roots: "list[str | Path] | None" = None,
 ) -> D365MCPServer:
     # repo_root/rules are OPTIONAL: in "embedded knowledge base" mode the server runs from a
     # prebuilt index alone (no custom repo). They are only needed for catalog-backed tools.
@@ -713,7 +717,9 @@ def build_server_from_config(
                              (data / "x++-rules.json") if data else None)
     )
     lint_config = linter.load_lint_config(lint_path) if lint_path else linter.LintConfig()
-    return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config)
+    roots = [Path(r).resolve() for r in (extra_roots or [])]
+    return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config,
+                         extra_roots=roots)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -724,6 +730,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--packages-root", default=os.environ.get("D365FO_PACKAGES_ROOT"))
     parser.add_argument("--methodology", default=os.environ.get("D365FO_METHODOLOGY"))
     parser.add_argument("--lint-rules", default=os.environ.get("D365FO_LINT_RULES"))
+    parser.add_argument(
+        "--extra-root", action="append",
+        default=(os.environ.get("D365FO_EXTRA_ROOTS", "").split(os.pathsep)
+                 if os.environ.get("D365FO_EXTRA_ROOTS") else None),
+        help="Additional source corpus root indexed into the same DB (repeatable; "
+             "env D365FO_EXTRA_ROOTS, path-separator separated).",
+    )
     args = parser.parse_args(argv)
 
     # Embedded-knowledge mode: run from a prebuilt index alone (no repo). Default the DB to the
@@ -738,6 +751,7 @@ def main(argv: list[str] | None = None) -> int:
     server = build_server_from_config(
         args.repo_root, args.rules, db_path=db, packages_root=args.packages_root,
         methodology_path=args.methodology, lint_rules_path=args.lint_rules,
+        extra_roots=args.extra_root,
     )
     server.serve_stdio()
     return 0

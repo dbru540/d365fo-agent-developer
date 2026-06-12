@@ -199,3 +199,70 @@ class CatalogTests(unittest.TestCase):
         self.assertIn(("related-to-report", "BABCheque_BOA", "BABChequeDP_BOA"), relation_pairs)
         self.assertIn(("uses-label", "BABBFCAccount", "@BABExportBFC:BFCLedgerAccount"), relation_pairs)
         self.assertIn(("xref:MethodCall", "/Forms/BABCustVendAgingBucketLookUp/Methods/init", "/Classes/FormRun/Methods/init"), relation_pairs)
+
+
+class CatalogLayoutTests(unittest.TestCase):
+    """Corpus layout discovery: src/xplusplus/models, flat xplusplus/models, build-output skip."""
+
+    def setUp(self) -> None:
+        TEST_TEMP_ROOT.mkdir(exist_ok=True)
+        self.root = TEST_TEMP_ROOT / str(uuid4())
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.rules_path = self.root / "rules.json"
+        self.rules_path.write_text(json.dumps(RULES_JSON), encoding="utf-8")
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.root, ignore_errors=True)
+
+    def _make_flat_repo(self, repo_name: str, model: str, class_name: str) -> Path:
+        # Layout WITHOUT the src/ prefix: <repo>/xplusplus/models/<Model>/<Package>/Ax*/...
+        repo_root = self.root / repo_name
+        model_root = repo_root / "xplusplus" / "models" / model
+        (model_root / "Descriptor").mkdir(parents=True, exist_ok=True)
+        (model_root / "Descriptor" / f"{model}.xml").write_text(
+            MODEL_DESCRIPTOR.replace("BABAccountsPayable", model), encoding="utf-8")
+        package_dir = model_root / model
+        (package_dir / "AxClass").mkdir(parents=True, exist_ok=True)
+        (package_dir / "AxClass" / f"{class_name}.xml").write_text(
+            CLASS_XML.replace("BABAssetTable_Extension", class_name), encoding="utf-8")
+        return repo_root
+
+    def test_build_catalog_supports_flat_xplusplus_layout(self) -> None:
+        from d365fo_agent.indexer import build_catalog
+        from d365fo_agent.rules import load_rules
+
+        repo_root = self._make_flat_repo("ctm", "CCICommon", "CCIHelper")
+        catalog = build_catalog(repo_root, load_rules(self.rules_path))
+        names = {artifact.name for artifact in catalog.artifacts}
+        self.assertIn("CCIHelper", names)
+        self.assertIn("CCICommon", catalog.models)
+
+    def test_build_catalog_skips_build_output_dirs(self) -> None:
+        from d365fo_agent.indexer import build_catalog
+        from d365fo_agent.rules import load_rules
+
+        repo_root = self._make_flat_repo("ctm", "CCICommon", "CCIHelper")
+        model_root = repo_root / "xplusplus" / "models" / "CCICommon"
+        # Compiled-metadata copies and binaries must NOT be indexed as artifacts.
+        for noise in ("XppMetadata", "bin", "Resources"):
+            noise_dir = model_root / noise / "CCICommon" / "AxClass"
+            noise_dir.mkdir(parents=True, exist_ok=True)
+            (noise_dir / "CCIHelper.xml").write_text(
+                CLASS_XML.replace("BABAssetTable_Extension", "CCIHelper"), encoding="utf-8")
+        catalog = build_catalog(repo_root, load_rules(self.rules_path))
+        helpers = [a for a in catalog.artifacts if a.name == "CCIHelper"]
+        self.assertEqual(len(helpers), 1)  # the source one only
+        self.assertNotIn("XppMetadata", helpers[0].relative_path)
+
+    def test_merge_catalogs_combines_two_corpora(self) -> None:
+        from d365fo_agent.indexer import build_catalog, merge_catalogs
+        from d365fo_agent.rules import load_rules
+
+        rules = load_rules(self.rules_path)
+        first = build_catalog(create_fixture_repo(self.root), rules)
+        second = build_catalog(self._make_flat_repo("ctm", "CCICommon", "CCIHelper"), rules)
+        merged = merge_catalogs([first, second])
+        names = {artifact.name for artifact in merged.artifacts}
+        self.assertIn("BABAssetTable_Extension", names)
+        self.assertIn("CCIHelper", names)
+        self.assertEqual(sorted(set(merged.models)), merged.models)  # sorted, no dupes

@@ -16,6 +16,7 @@ from d365fo_agent.indexer import (
     find_references,
     find_reverse_references,
     get_artifact_details,
+    merge_catalogs,
     summarize_classifications,
 )
 from d365fo_agent.index_store import build_index_file
@@ -182,8 +183,12 @@ def main(argv: list[str] | None = None) -> int:
         if not args.repo_root and not args.packages_root:
             parser.error("build-index needs --repo-root (custom) and/or --packages-root (standard).")
         # repo_root/rules are optional: omit them to build a STANDARD-only index (the shippable
-        # knowledge base) from a PackagesLocalDirectory alone.
-        catalog = build_catalog(Path(args.repo_root), load_rules(args.rules)) if args.repo_root else None
+        # knowledge base) from a PackagesLocalDirectory alone. --repo-root is repeatable: all
+        # corpora are merged into ONE catalog because rebuilding "custom" replaces every custom row.
+        catalog = None
+        if args.repo_root:
+            rules = load_rules(args.rules)
+            catalog = merge_catalogs([build_catalog(Path(root), rules) for root in args.repo_root])
 
         def _progress(package: str, count: int) -> None:
             sys.stderr.write(f"[build-index] {package}: +{count}\n")
@@ -215,6 +220,8 @@ def main(argv: list[str] | None = None) -> int:
             db_path=db,
             packages_root=args.packages_root,
             methodology_path=args.methodology,
+            lint_rules_path=args.lint_rules,
+            extra_roots=args.extra_root,
         )
         server.serve_stdio()
         return 0
@@ -489,7 +496,11 @@ def _build_parser() -> argparse.ArgumentParser:
     run_graphify.add_argument("--no-html", action="store_true")
 
     build_index = subparsers.add_parser("build-index", help="Build the SQLite FTS5 index (standard and/or custom).")
-    build_index.add_argument("--repo-root", help="Custom D365 source repo (omit to build a STANDARD-only knowledge index).")
+    build_index.add_argument(
+        "--repo-root", action="append", default=None,
+        help="Custom D365 source repo (repeatable — all corpora are merged; omit to build a "
+             "STANDARD-only knowledge index).",
+    )
     build_index.add_argument("--rules", help="Classification rules JSON (required with --repo-root).")
     build_index.add_argument("--db", required=True, help="Output SQLite database path, e.g. .omx/index/d365fo.db")
     build_index.add_argument("--packages-root", help="PackagesLocalDirectory to index the standard D365 corpus.")
@@ -508,6 +519,11 @@ def _build_parser() -> argparse.ArgumentParser:
     serve_mcp.add_argument("--rules", help="Classification rules JSON (only with --repo-root).")
     serve_mcp.add_argument("--db", help="SQLite index path (defaults to the fetched knowledge cache ~/.d365fo-agent/d365fo.db).")
     serve_mcp.add_argument("--packages-root", help="PackagesLocalDirectory — enables source-reading tools (signatures, examples).")
+    serve_mcp.add_argument(
+        "--extra-root", action="append", default=None,
+        help="Additional source corpus root indexed into the same DB (repeatable).",
+    )
+    serve_mcp.add_argument("--lint-rules", help="X++ lint rules JSON (defaults to the bundled rules).")
     serve_mcp.add_argument("--methodology")
 
     fetch_knowledge_cmd = subparsers.add_parser(

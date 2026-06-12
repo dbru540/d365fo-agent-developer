@@ -1,7 +1,9 @@
 # Client corpus & bulk assets — never commit
 D365_repo/
+src_ctm/
 PackagesLocalDirectory.zip.*
 src.zip
+*.7z
 release/
 
 # Client-specific config & internal working notes — keep local only
@@ -27,3 +29,4 @@ __pycache__/
 *.py[cod]
 .venv/
 venv/
+config/lint.local.json

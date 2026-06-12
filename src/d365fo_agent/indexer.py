@@ -22,12 +22,38 @@ EXTENSION_OF_PATTERN = re.compile(
 REPORT_QUERY_PATTERN = re.compile(r"SELECT\s+\*\s+FROM\s+(?P<provider>[A-Za-z0-9_]+)\.[A-Za-z0-9_]+", re.IGNORECASE)
 
 
+# Build outputs that live alongside the source package dir inside a model — compiled-metadata
+# copies (XppMetadata) would otherwise be indexed as duplicate artifacts.
+_NON_SOURCE_DIRS = {"Descriptor", "Resources", "XppMetadata", "bin", "obj", "AdditionalFiles"}
+
+
+def _discover_models_root(repo_root: Path) -> Path:
+    candidates = (repo_root / "src" / "xplusplus" / "models", repo_root / "xplusplus" / "models")
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    raise FileNotFoundError(
+        f"No X++ models found under {repo_root} (tried src/xplusplus/models and xplusplus/models)"
+    )
+
+
+def merge_catalogs(catalogs: "list[Catalog]") -> Catalog:
+    """Combine catalogs from several repo roots into one (single custom-index build pass)."""
+    merged = Catalog()
+    for catalog in catalogs:
+        merged.artifacts.extend(catalog.artifacts)
+        merged.relations.extend(catalog.relations)
+        merged.models.extend(catalog.models)
+    merged.models = sorted(set(merged.models))
+    return merged
+
+
 def build_catalog(repo_root: str | Path, rules: CorpusRules) -> Catalog:
     repo_root = Path(repo_root)
     catalog = Catalog()
     relation_keys: set[tuple[str, str, str, str, str]] = set()
 
-    models_root = repo_root / "src" / "xplusplus" / "models"
+    models_root = _discover_models_root(repo_root)
     for model_dir in sorted(path for path in models_root.iterdir() if path.is_dir()):
         descriptor = _load_model_descriptor(model_dir)
         if not descriptor:
@@ -47,7 +73,7 @@ def build_catalog(repo_root: str | Path, rules: CorpusRules) -> Catalog:
                 ),
             )
 
-        for package_dir in sorted(path for path in model_dir.iterdir() if path.is_dir() and path.name != "Descriptor"):
+        for package_dir in sorted(path for path in model_dir.iterdir() if path.is_dir() and path.name not in _NON_SOURCE_DIRS):
             for xml_file in sorted(package_dir.rglob("*.xml")):
                 artifact_type = xml_file.parent.name
                 if not artifact_type.startswith("Ax"):

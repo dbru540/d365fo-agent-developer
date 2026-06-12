@@ -500,6 +500,19 @@ class McpServerTests(unittest.TestCase):
         self.assertFalse(err)
         self.assertIn("Extension first", payload["methodology"])
 
+    def test_extra_roots_join_file_roots(self) -> None:
+        # A second corpus root (e.g. another client repo) must take part in XML resolution.
+        from d365fo_agent.mcp_server import build_server_from_config
+
+        extra = self.root / "second_corpus"
+        extra.mkdir(exist_ok=True)
+        srv = build_server_from_config(db_path=self.db_path, extra_roots=[extra])
+        try:
+            self.assertIn(extra.resolve(), srv.file_roots)
+        finally:
+            if srv._index is not None:
+                srv._index.close()
+
     def test_knowledge_only_mode_no_repo(self) -> None:
         # Server runs from the index alone (no repo/rules): discovery + bundled methodology/profiles.
         from d365fo_agent.mcp_server import build_server_from_config
