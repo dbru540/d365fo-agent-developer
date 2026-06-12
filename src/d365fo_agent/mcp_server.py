@@ -575,6 +575,48 @@ class D365MCPServer:
             return lookup(self.sql_model_path, args["name"],
                           include_definition=bool(args.get("include_definition")))
 
+        @tool(
+            "explore_functional_unit",
+            "Describe a business domain (functional unit) of the D365 data model: its core tables "
+            "(most referenced by entity views), its main entities, and its interfaces to other "
+            "domains (with example bridge entities). Call this to answer functional questions like "
+            "'how does settlement work and what does it connect to' or to pick the right entities "
+            "for a reporting/integration scope. Units include: facture-client, facture-fournisseur, "
+            "lettrage-reglement, dimension-financiere, comptabilite-generale, paiement, banque, "
+            "taxe, client, fournisseur, tiers-partie, achat, vente, stock-inventaire, ...",
+            {"type": "object", "properties": {
+                "unit": {"type": "string", "description": "Functional unit name, e.g. lettrage-reglement"},
+                "top": {"type": "integer", "description": "Max items per list (default 15)"},
+            }, "required": ["unit"]},
+        )
+        def explore_functional_unit(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.sql_model import explore_functional_unit as explore
+
+            if not self.sql_model_path:
+                return {"found": False, "error": "No SQL model configured (--sql-model / D365FO_SQL_MODEL)."}
+            return explore(self.sql_model_path, args["unit"], top=int(args.get("top", 15)))
+
+        @tool(
+            "find_relations",
+            "Explain how two objects of the D365 data model relate. Two TABLES: the entity views "
+            "that join them (the SQL proof of the relationship — AX databases have no foreign "
+            "keys). Two ENTITIES/views: their shared base tables. A view and a table: whether the "
+            "view reads the table (directly or through nested views). When the two objects belong "
+            "to different functional units, also returns the inter-domain interface (bridge-view "
+            "count + examples). Call this BEFORE asserting any relationship between tables or "
+            "entities.",
+            {"type": "object", "properties": {
+                "a": {"type": "string", "description": "First table/entity name, e.g. CUSTTABLE"},
+                "b": {"type": "string", "description": "Second table/entity name, e.g. VENDTABLE"},
+            }, "required": ["a", "b"]},
+        )
+        def find_relations(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.sql_model import find_relations as relate
+
+            if not self.sql_model_path:
+                return {"found": False, "error": "No SQL model configured (--sql-model / D365FO_SQL_MODEL)."}
+            return relate(self.sql_model_path, args["a"], args["b"])
+
     # -- resources -----------------------------------------------------------------
 
     def list_resources(self) -> list[dict[str, Any]]:

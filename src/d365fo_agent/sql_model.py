@@ -129,6 +129,141 @@ def _describe_table(conn: sqlite3.Connection, table: sqlite3.Row) -> dict[str, o
     return result
 
 
+def explore_functional_unit(db_path: str | Path, unit: str, *, top: int = 15) -> dict[str, object]:
+    """Describe a functional unit (business domain): core tables, main entities, interfaces.
+
+    Answers "what is the settlement domain and what does it connect to" — the unit inventory
+    comes from the prefix-seeded + affinity-propagated classification stored in the model.
+    """
+    db_path = Path(db_path)
+    if not db_path.exists():
+        return {"found": False, "error": f"SQL model database not found: {db_path}"}
+    with _connect(db_path) as conn:
+        if not _has_table(conn, "functional_units"):
+            return {"found": False, "error": "No functional analysis in this SQL model "
+                    "(functional_units table absent)."}
+        known = [r[0] for r in conn.execute(
+            "SELECT DISTINCT unit FROM functional_units ORDER BY unit")]
+        if unit not in known:
+            close = [u for u in known if unit.lower() in u.lower()]
+            return {"found": False, "unit": unit, "error": "unknown functional unit",
+                    "suggestions": close or known}
+        result: dict[str, object] = {
+            "found": True, "unit": unit,
+            "n_tables": conn.execute(
+                "SELECT COUNT(*) FROM functional_units WHERE unit=?", (unit,)).fetchone()[0],
+        }
+        result["core_tables"] = [
+            {"table": r["table_name"], "referenced_by_views": r["refs"], "columns": r["cols"]}
+            for r in conn.execute("""
+                SELECT fu.table_name,
+                  (SELECT COUNT(DISTINCT m.view_name) FROM model_view_tables m
+                     WHERE m.table_name = fu.table_name) AS refs,
+                  (SELECT COUNT(*) FROM sql_table_columns c JOIN sql_tables t
+                     ON t.object_id = c.object_id WHERE t.name = fu.table_name) AS cols
+                FROM functional_units fu WHERE fu.unit = ? ORDER BY refs DESC LIMIT ?""",
+                (unit, top))
+            if r["refs"] > 0
+        ]
+        if _has_table(conn, "functional_views"):
+            result["n_views"] = conn.execute(
+                "SELECT COUNT(*) FROM functional_views WHERE unit=?", (unit,)).fetchone()[0]
+            result["entities"] = [r[0] for r in conn.execute("""
+                SELECT fv.view_name FROM functional_views fv
+                LEFT JOIN view_model vm ON vm.name = fv.view_name
+                WHERE fv.unit = ? AND COALESCE(vm.kind, 'entity') = 'entity'
+                ORDER BY COALESCE(vm.n_tables, 0) DESC LIMIT ?""", (unit, top))]
+        if _has_table(conn, "unit_interfaces"):
+            result["interfaces"] = [
+                {"with": r["unit_b"] if r["unit_a"] == unit else r["unit_a"],
+                 "bridge_views": r["n_views"], "examples": r["examples"]}
+                for r in conn.execute("""
+                    SELECT * FROM unit_interfaces WHERE unit_a = ? OR unit_b = ?
+                    ORDER BY n_views DESC LIMIT ?""", (unit, unit, top))
+            ]
+        return result
+
+
+def _classify_name(conn: sqlite3.Connection, name: str) -> tuple[str, str] | None:
+    """Return (kind, canonical_name) where kind is 'view' or 'table', or None."""
+    row = conn.execute("SELECT name FROM sql_views WHERE UPPER(name)=UPPER(?)", (name,)).fetchone()
+    if row is not None:
+        return ("view", row["name"])
+    row = conn.execute("SELECT name FROM sql_tables WHERE UPPER(name)=UPPER(?)", (name,)).fetchone()
+    if row is not None:
+        return ("table", row["name"])
+    return None
+
+
+def find_relations(db_path: str | Path, a: str, b: str) -> dict[str, object]:
+    """Explain how two objects relate: shared views for tables (the SQL proof of a join),
+    shared base tables for entities, and the inter-unit interface when domains differ."""
+    db_path = Path(db_path)
+    if not db_path.exists():
+        return {"found": False, "error": f"SQL model database not found: {db_path}"}
+    with _connect(db_path) as conn:
+        if not _has_table(conn, "model_view_tables"):
+            return {"found": False, "error": "No dependency analysis in this SQL model "
+                    "(model_view_tables absent)."}
+        ka, kb = _classify_name(conn, a), _classify_name(conn, b)
+        missing = [n for n, k in ((a, ka), (b, kb)) if k is None]
+        if missing:
+            return {"found": False, "error": f"not found as view or table: {', '.join(missing)}"}
+        (kind_a, name_a), (kind_b, name_b) = ka, kb
+
+        units = dict(conn.execute("SELECT table_name, unit FROM functional_units")) \
+            if _has_table(conn, "functional_units") else {}
+        view_units = dict(conn.execute("SELECT view_name, unit FROM functional_views")) \
+            if _has_table(conn, "functional_views") else {}
+
+        def unit_of(kind: str, name: str) -> str | None:
+            return units.get(name) if kind == "table" else view_units.get(name)
+
+        result: dict[str, object] = {
+            "found": True,
+            "a": {"name": name_a, "object": kind_a, "unit": unit_of(kind_a, name_a)},
+            "b": {"name": name_b, "object": kind_b, "unit": unit_of(kind_b, name_b)},
+        }
+
+        if kind_a == "table" and kind_b == "table":
+            joining = [r[0] for r in conn.execute("""
+                SELECT view_name FROM model_view_tables WHERE table_name = ?
+                INTERSECT SELECT view_name FROM model_view_tables WHERE table_name = ?
+                ORDER BY view_name LIMIT 25""", (name_a, name_b))]
+            result["relation"] = "joined_by_views"
+            result["joining_views"] = joining
+            result["joining_view_count"] = conn.execute("""
+                SELECT COUNT(*) FROM (
+                  SELECT view_name FROM model_view_tables WHERE table_name = ?
+                  INTERSECT SELECT view_name FROM model_view_tables WHERE table_name = ?)""",
+                (name_a, name_b)).fetchone()[0]
+        elif kind_a == "view" and kind_b == "view":
+            shared = [{"table": r[0], "unit": units.get(r[0])} for r in conn.execute("""
+                SELECT table_name FROM model_view_tables WHERE view_name = ?
+                INTERSECT SELECT table_name FROM model_view_tables WHERE view_name = ?
+                ORDER BY table_name LIMIT 25""", (name_a, name_b))]
+            result["relation"] = "share_base_tables"
+            result["shared_tables"] = shared
+        else:
+            view, table = (name_a, name_b) if kind_a == "view" else (name_b, name_a)
+            rows = conn.execute(
+                "SELECT via FROM model_view_tables WHERE view_name = ? AND table_name = ?",
+                (view, table)).fetchall()
+            result["relation"] = "view_reads_table" if rows else "no_direct_dependency"
+            result["via"] = sorted({r["via"] for r in rows})
+
+        ua, ub = result["a"]["unit"], result["b"]["unit"]  # type: ignore[index]
+        if ua and ub and ua != ub and _has_table(conn, "unit_interfaces"):
+            x, y = sorted((ua, ub))
+            iface = conn.execute(
+                "SELECT n_views, examples FROM unit_interfaces WHERE unit_a=? AND unit_b=?",
+                (x, y)).fetchone()
+            if iface is not None:
+                result["unit_interface"] = {"units": [x, y], "bridge_views": iface["n_views"],
+                                            "examples": iface["examples"]}
+        return result
+
+
 def sql_model_stats(db_path: str | Path) -> dict[str, object]:
     """Coverage summary of the SQL model (used by index_stats-style reporting)."""
     db_path = Path(db_path)

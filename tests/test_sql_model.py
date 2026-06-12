@@ -25,6 +25,7 @@ def create_sql_model_fixture(path: Path) -> None:
     CREATE TABLE model_view_tables(referencing_id INTEGER, view_name TEXT, table_name TEXT, via TEXT);
     CREATE TABLE functional_units(table_name TEXT PRIMARY KEY, unit TEXT, how TEXT);
     CREATE TABLE functional_views(view_name TEXT PRIMARY KEY, unit TEXT, units_spanned INTEGER);
+    CREATE TABLE unit_interfaces(unit_a TEXT, unit_b TEXT, n_views INTEGER, examples TEXT);
     """)
     conn.execute("INSERT INTO sql_views VALUES(1,'dbo','CUSTSETTLEMENTENTITY','2024-01-01','2024-01-01',"
                  "'CREATE VIEW CUSTSETTLEMENTENTITY AS SELECT ... FROM CUSTSETTLEMENT JOIN CUSTTRANSOPEN ...')")
@@ -48,6 +49,17 @@ def create_sql_model_fixture(path: Path) -> None:
         ("CUSTTRANSOPEN", "lettrage-reglement", "prefix"),
     ])
     conn.execute("INSERT INTO functional_views VALUES('CUSTSETTLEMENTENTITY','lettrage-reglement',1)")
+    # Second table + a payment-side view that also reads CUSTTRANSOPEN — gives find_relations
+    # a shared view (table-table) and a cross-unit pair (view-view).
+    conn.execute("INSERT INTO sql_tables VALUES(11,'CUSTTRANSOPEN','2024-01-01','2024-01-01')")
+    conn.execute("INSERT INTO sql_table_columns VALUES(11,1,'RECID','bigint',8,19,0,0)")
+    conn.execute("INSERT INTO sql_views VALUES(2,'dbo','CUSTPAYMENTENTITY','2024-01-01','2024-01-01',"
+                 "'CREATE VIEW CUSTPAYMENTENTITY AS SELECT ... FROM CUSTTRANSOPEN ...')")
+    conn.execute("INSERT INTO sql_view_columns VALUES(2,1,'PAYMENTAMOUNT','numeric',17,32,6,0)")
+    conn.execute("INSERT INTO view_model VALUES(2,'CUSTPAYMENTENTITY','entity','CustPaymentEntity','standard',1,1,0)")
+    conn.execute("INSERT INTO model_view_tables VALUES(2,'CUSTPAYMENTENTITY','CUSTTRANSOPEN','direct')")
+    conn.execute("INSERT INTO functional_views VALUES('CUSTPAYMENTENTITY','paiement',2)")
+    conn.execute("INSERT INTO unit_interfaces VALUES('lettrage-reglement','paiement',12,'CUSTPAYMENTENTITY')")
     conn.commit()
     conn.close()
 
@@ -112,6 +124,72 @@ class SqlModelTests(unittest.TestCase):
         result = get_sql_model(self.db, "CUSTSETTLEMENTENTITY")
         self.assertTrue(result["found"])
         self.assertNotIn("functional_unit", result)
+
+    def test_explore_functional_unit(self) -> None:
+        from d365fo_agent.sql_model import explore_functional_unit
+
+        result = explore_functional_unit(self.db, "lettrage-reglement")
+        self.assertTrue(result["found"])
+        self.assertEqual(result["n_tables"], 2)
+        core = {t["table"] for t in result["core_tables"]}
+        self.assertEqual(core, {"CUSTSETTLEMENT", "CUSTTRANSOPEN"})
+        self.assertIn("CUSTSETTLEMENTENTITY", result["entities"])
+        iface = result["interfaces"][0]
+        self.assertEqual(iface["with"], "paiement")
+        self.assertEqual(iface["bridge_views"], 12)
+
+    def test_explore_unknown_unit_suggests(self) -> None:
+        from d365fo_agent.sql_model import explore_functional_unit
+
+        result = explore_functional_unit(self.db, "lettrage")
+        self.assertFalse(result["found"])
+        self.assertIn("lettrage-reglement", result["suggestions"])
+
+    def test_find_relations_table_table(self) -> None:
+        from d365fo_agent.sql_model import find_relations
+
+        result = find_relations(self.db, "CUSTSETTLEMENT", "CUSTTRANSOPEN")
+        self.assertTrue(result["found"])
+        self.assertEqual(result["relation"], "joined_by_views")
+        self.assertIn("CUSTSETTLEMENTENTITY", result["joining_views"])
+        self.assertEqual(result["joining_view_count"], 1)
+
+    def test_find_relations_view_view_cross_unit(self) -> None:
+        from d365fo_agent.sql_model import find_relations
+
+        result = find_relations(self.db, "CUSTSETTLEMENTENTITY", "CUSTPAYMENTENTITY")
+        self.assertTrue(result["found"])
+        self.assertEqual(result["relation"], "share_base_tables")
+        self.assertEqual([t["table"] for t in result["shared_tables"]], ["CUSTTRANSOPEN"])
+        self.assertEqual(result["unit_interface"]["bridge_views"], 12)
+
+    def test_find_relations_view_table(self) -> None:
+        from d365fo_agent.sql_model import find_relations
+
+        result = find_relations(self.db, "CUSTPAYMENTENTITY", "custtransopen")
+        self.assertEqual(result["relation"], "view_reads_table")
+        self.assertEqual(result["via"], ["direct"])
+        result2 = find_relations(self.db, "CUSTPAYMENTENTITY", "CUSTSETTLEMENT")
+        self.assertEqual(result2["relation"], "no_direct_dependency")
+
+    def test_mcp_functional_tools_registered(self) -> None:
+        from d365fo_agent.index_store import D365Index
+        from d365fo_agent.mcp_server import build_server_from_config
+
+        kdb = self.root / "k2.db"
+        D365Index(kdb).close()
+        srv = build_server_from_config(db_path=kdb, sql_model_path=self.db)
+        try:
+            self.assertIn("explore_functional_unit", srv.tools)
+            self.assertIn("find_relations", srv.tools)
+            response = srv.handle({"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+                "params": {"name": "explore_functional_unit",
+                           "arguments": {"unit": "lettrage-reglement"}}})
+            payload = json.loads(response["result"]["content"][0]["text"])
+            self.assertTrue(payload["found"])
+        finally:
+            if srv._index is not None:
+                srv._index.close()
 
     def test_mcp_tool_with_and_without_model(self) -> None:
         from d365fo_agent.mcp_server import build_server_from_config
