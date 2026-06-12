@@ -55,7 +55,9 @@ class D365MCPServer:
         methodology_path: Path | None,
         lint_config: "linter.LintConfig | None" = None,
         extra_roots: "list[Path] | None" = None,
+        sql_model_path: Path | None = None,
     ) -> None:
+        self.sql_model_path = sql_model_path
         self.repo_root = repo_root
         self.rules_path = rules_path
         self.db_path = db_path
@@ -542,10 +544,36 @@ class D365MCPServer:
             {"type": "object", "properties": {}},
         )
         def index_stats(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.sql_model import sql_model_stats
+
             return {"stats": self.index.stats(),
                     "supported_object_types": self.index.list_types(),
                     "by_type_custom": self.index.counts_by_type(source="custom", limit=60),
-                    "by_type_standard": self.index.counts_by_type(source="standard", limit=80)}
+                    "by_type_standard": self.index.counts_by_type(source="standard", limit=80),
+                    "sql_model": sql_model_stats(self.sql_model_path) if self.sql_model_path
+                                 else {"available": False}}
+
+        @tool(
+            "get_sql_model",
+            "Return the REAL SQL shape of a data entity or table as deployed in a D365 database: "
+            "typed SQL columns, the base tables it reads (each with its functional unit — invoice, "
+            "settlement, financial dimensions, ...), its own functional unit, and optionally the "
+            "full T-SQL view definition (the actual joins). Call this when working on OData, Data "
+            "management, BYOD, reporting or integrations, so column lists and joins come from the "
+            "physical model instead of guesses.",
+            {"type": "object", "properties": {
+                "name": {"type": "string", "description": "Entity/view or table name (case-insensitive), e.g. CustCustomerV3Entity or CUSTTABLE"},
+                "include_definition": {"type": "boolean", "description": "Include the T-SQL view definition (truncated at 20k chars)"},
+            }, "required": ["name"]},
+        )
+        def get_sql_model(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.sql_model import get_sql_model as lookup
+
+            if not self.sql_model_path:
+                return {"found": False, "error": "No SQL model configured. Extract one from a D365 "
+                        "database and pass it with --sql-model (or D365FO_SQL_MODEL)."}
+            return lookup(self.sql_model_path, args["name"],
+                          include_definition=bool(args.get("include_definition")))
 
     # -- resources -----------------------------------------------------------------
 
@@ -694,6 +722,7 @@ def build_server_from_config(
     methodology_path: str | Path | None = None,
     lint_rules_path: str | Path | None = None,
     extra_roots: "list[str | Path] | None" = None,
+    sql_model_path: str | Path | None = None,
 ) -> D365MCPServer:
     # repo_root/rules are OPTIONAL: in "embedded knowledge base" mode the server runs from a
     # prebuilt index alone (no custom repo). They are only needed for catalog-backed tools.
@@ -718,8 +747,13 @@ def build_server_from_config(
     )
     lint_config = linter.load_lint_config(lint_path) if lint_path else linter.LintConfig()
     roots = [Path(r).resolve() for r in (extra_roots or [])]
+    # SQL model: explicit flag/env, else a sqlmodel-raw.db sitting next to the knowledge index.
+    sql_model = Path(sql_model_path).resolve() if sql_model_path else None
+    if sql_model is None:
+        sibling = db_path.parent / "sqlmodel-raw.db"
+        sql_model = sibling if sibling.exists() else None
     return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config,
-                         extra_roots=roots)
+                         extra_roots=roots, sql_model_path=sql_model)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -737,6 +771,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Additional source corpus root indexed into the same DB (repeatable; "
              "env D365FO_EXTRA_ROOTS, path-separator separated).",
     )
+    parser.add_argument(
+        "--sql-model", default=os.environ.get("D365FO_SQL_MODEL"),
+        help="SQLite SQL data model extracted from a deployed D365 database (enables get_sql_model; "
+             "defaults to a sqlmodel-raw.db next to the knowledge index).",
+    )
     args = parser.parse_args(argv)
 
     # Embedded-knowledge mode: run from a prebuilt index alone (no repo). Default the DB to the
@@ -751,7 +790,7 @@ def main(argv: list[str] | None = None) -> int:
     server = build_server_from_config(
         args.repo_root, args.rules, db_path=db, packages_root=args.packages_root,
         methodology_path=args.methodology, lint_rules_path=args.lint_rules,
-        extra_roots=args.extra_root,
+        extra_roots=args.extra_root, sql_model_path=args.sql_model,
     )
     server.serve_stdio()
     return 0

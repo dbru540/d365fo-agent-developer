@@ -68,6 +68,17 @@ every corpus together). Source layouts `src/xplusplus/models` and `xplusplus/mod
 detected. When serving, pass each additional corpus to `serve-mcp` with `--extra-root <path>`
 so the source-reading tools (signatures, examples, scaffold) can resolve its XML files.
 
+### Optional: SQL data model (`get_sql_model`)
+
+If you extract the SQL metadata of a deployed D365 database (views = the SQL counterparts of
+data entities, base tables, typed columns, primary keys, functional-unit classification) into a
+SQLite file, pass it with `serve-mcp --sql-model <sqlmodel.db>` (env `D365FO_SQL_MODEL`; a
+`sqlmodel-raw.db` sitting next to the knowledge index is picked up automatically). This enables
+the `get_sql_model` tool: the REAL SQL shape of an entity or table — typed columns, the base
+tables it reads (each tagged with its functional unit: invoice, settlement, financial
+dimensions, ...), and optionally the full T-SQL view definition. Grounds OData / Data
+management / BYOD / reporting work in the physical model.
+
 ## Wiring it into a coding agent
 
 ### Claude Code (`.mcp.json` in the project root)

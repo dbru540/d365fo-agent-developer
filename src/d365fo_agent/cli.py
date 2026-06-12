@@ -222,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
             methodology_path=args.methodology,
             lint_rules_path=args.lint_rules,
             extra_roots=args.extra_root,
+            sql_model_path=args.sql_model,
         )
         server.serve_stdio()
         return 0
@@ -524,6 +525,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Additional source corpus root indexed into the same DB (repeatable).",
     )
     serve_mcp.add_argument("--lint-rules", help="X++ lint rules JSON (defaults to the bundled rules).")
+    serve_mcp.add_argument(
+        "--sql-model",
+        help="SQLite SQL data model extracted from a deployed D365 database (enables get_sql_model; "
+             "defaults to a sqlmodel-raw.db next to the knowledge index).",
+    )
     serve_mcp.add_argument("--methodology")
 
     fetch_knowledge_cmd = subparsers.add_parser(
