@@ -18,8 +18,8 @@ compiler.
 ## Install
 
 ```bash
-pip install d365fo-agent
-# or, isolated:  pipx install d365fo-agent
+pip install d365fo-agent-developer
+# or, isolated:  pipx install d365fo-agent-developer
 ```
 
 This installs two commands: `d365fo-mcp` (the server) and `d365fo-agent` (the CLI).

@@ -3,7 +3,7 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "d365fo-agent"
+name = "d365fo-agent-developer"
 version = "0.6.0"
 description = "Local D365 F&O knowledge toolkit: corpus indexing (SQLite FTS5), deterministic generation, and an MCP server that grounds coding agents (Claude Code, Codex) in real AOT facts."
 readme = "README.md"
