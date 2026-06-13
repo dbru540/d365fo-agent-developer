@@ -30,9 +30,9 @@ classifiers = [
 dependencies = []
 
 [project.urls]
-Homepage = "https://github.com/dbru540/d365fo-agent"
-Repository = "https://github.com/dbru540/d365fo-agent"
-Issues = "https://github.com/dbru540/d365fo-agent/issues"
+Homepage = "https://github.com/dbru540/d365fo-agent-developer"
+Repository = "https://github.com/dbru540/d365fo-agent-developer"
+Issues = "https://github.com/dbru540/d365fo-agent-developer/issues"
 
 [project.optional-dependencies]
 # The graph-building engine is the ONLY external dependency, and only the

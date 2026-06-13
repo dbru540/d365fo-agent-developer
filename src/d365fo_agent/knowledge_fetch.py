@@ -18,7 +18,7 @@ from pathlib import Path
 # decoupled from the code version (tag `knowledge-v1`) so wheel releases don't re-upload 100 MB.
 # Override with --url, or build your own from a PLD when the asset is unavailable.
 DEFAULT_KNOWLEDGE_URL = (
-    "https://github.com/dbru540/d365fo-agent/releases/download/knowledge-v1/d365fo-standard.db.gz"
+    "https://github.com/dbru540/d365fo-agent-developer/releases/download/knowledge-v1/d365fo-standard.db.gz"
 )
 
 
