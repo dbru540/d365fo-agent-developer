@@ -36,13 +36,18 @@ from d365fo_agent.index_store import D365Index
 from d365fo_agent.validate import validate_xml
 
 PROTOCOL_VERSION = "2025-06-18"
-SERVER_NAME = "d365fo-agent"
-SERVER_VERSION = "0.2.0"
+SERVER_NAME = "d365fo-agent-developer"
+try:
+    from importlib.metadata import version as _dist_version
+
+    SERVER_VERSION = _dist_version("d365fo-agent-developer")
+except Exception:  # source tree / not installed
+    SERVER_VERSION = "0.0.0-dev"
 
 
 def _log(message: str) -> None:
     # stdout is the JSON-RPC channel; diagnostics MUST go to stderr.
-    print(f"[d365fo-mcp] {message}", file=sys.stderr, flush=True)
+    print(f"[{SERVER_NAME}] {message}", file=sys.stderr, flush=True)
 
 
 class D365MCPServer:
@@ -799,7 +804,8 @@ def build_server_from_config(
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="d365fo-mcp", description="D365 F&O knowledge MCP server (stdio).")
+    parser = argparse.ArgumentParser(prog="d365fo-agent-developer",
+                                     description="D365 F&O knowledge MCP server (stdio).")
     parser.add_argument("--repo-root", default=os.environ.get("D365FO_REPO_ROOT"))
     parser.add_argument("--rules", default=os.environ.get("D365FO_RULES"))
     parser.add_argument("--db", default=os.environ.get("D365FO_DB"))

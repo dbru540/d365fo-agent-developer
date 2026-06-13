@@ -463,7 +463,7 @@ class McpServerTests(unittest.TestCase):
 
     def test_initialize(self) -> None:
         resp = self._rpc("initialize", {"protocolVersion": "2025-06-18", "capabilities": {}})
-        self.assertEqual(resp["result"]["serverInfo"]["name"], "d365fo-agent")
+        self.assertEqual(resp["result"]["serverInfo"]["name"], "d365fo-agent-developer")
         self.assertIn("tools", resp["result"]["capabilities"])
 
     def test_tools_list_nonempty(self) -> None:

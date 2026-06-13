@@ -100,7 +100,7 @@ cardinalities, exact join fields), and table lookups gain `aot_relations` /
 ```json
 {
   "mcpServers": {
-    "d365fo": {
+    "d365fo-agent-developer": {
       "command": "python",
       "args": [
         "-m", "d365fo_agent.cli", "serve-mcp",
@@ -115,7 +115,7 @@ cardinalities, exact join fields), and table lookups gain `aot_relations` /
 }
 ```
 
-Restart Claude Code; the `d365fo` tools appear. Ask it to read `get_methodology` first. This
+Restart Claude Code; the `d365fo-agent-developer` tools appear. Ask it to read `get_methodology` first. This
 Windows-native config (also shipped as `.mcp.json` in the project root) is the recommended one —
 the server itself is **not** affected by the Windows MAX_PATH limit (its DB lives at a short path
 and it reads files well under 260 chars). MAX_PATH only ever tripped the *test suite's* deep
@@ -133,7 +133,7 @@ relative paths), so no rebuild is needed when switching.
 ```json
 {
   "mcpServers": {
-    "d365fo": {
+    "d365fo-agent-developer": {
       "command": "python3",
       "args": [
         "-m", "d365fo_agent.cli", "serve-mcp",
@@ -154,7 +154,7 @@ relative paths), so no rebuild is needed when switching.
 ```json
 {
   "mcpServers": {
-    "d365fo": {
+    "d365fo-agent-developer": {
       "command": "wsl.exe",
       "args": [
         "-e", "bash", "-c",
@@ -175,9 +175,9 @@ Any host that speaks MCP stdio uses the same command. The generic shape:
 
 - **command:** `python`
 - **args:** `-m d365fo_agent.cli serve-mcp --repo-root <repo> --rules <rules.json> --db <db> [--packages-root <pkgs>]`
-- **env:** `PYTHONPATH=src` (or install the package so `d365fo-mcp` is on PATH and use that)
+- **env:** `PYTHONPATH=src` (or install the package so `d365fo-agent-developer` is on PATH and use that)
 
-The console entry point `d365fo-mcp` (declared in `pyproject.toml`) is equivalent to
+The console entry point `d365fo-agent-developer` (alias `d365fo-mcp`, declared in `pyproject.toml`) is equivalent to
 `python -m d365fo_agent.mcp_server` and reads the same flags or the env vars
 `D365FO_REPO_ROOT`, `D365FO_RULES`, `D365FO_DB`, `D365FO_PACKAGES_ROOT`, `D365FO_METHODOLOGY`.
 

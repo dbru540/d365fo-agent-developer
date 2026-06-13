@@ -1,4 +1,4 @@
-# d365fo-agent — D365 F&O X++ knowledge for Claude Code & Codex
+# d365fo-agent-developer — D365 F&O X++ knowledge for Claude Code & Codex
 
 A local **MCP server** that gives an AI coding agent (Claude Code, Codex, any MCP host) a grounded
 **knowledge base of Dynamics 365 Finance & Operations X++** — so you can develop for D365 quickly
@@ -22,7 +22,7 @@ pip install d365fo-agent-developer
 # or, isolated:  pipx install d365fo-agent-developer
 ```
 
-This installs two commands: `d365fo-mcp` (the server) and `d365fo-agent` (the CLI).
+This installs two commands: `d365fo-agent-developer` (the MCP server; `d365fo-mcp` is a short alias) and `d365fo-agent` (the CLI).
 
 ## Get the knowledge base (once)
 
@@ -53,18 +53,18 @@ d365fo-agent build-index \
 ```json
 {
   "mcpServers": {
-    "d365fo": { "command": "d365fo-mcp", "args": [] }
+    "d365fo-agent-developer": { "command": "d365fo-agent-developer", "args": [] }
   }
 }
 ```
 
-…or one command: `claude mcp add d365fo d365fo-mcp`
+…or one command: `claude mcp add d365fo-agent-developer d365fo-agent-developer`
 
 **Codex** — add to `~/.codex/config.toml`:
 
 ```toml
-[mcp_servers.d365fo]
-command = "d365fo-mcp"
+[mcp_servers.d365fo-agent-developer]
+command = "d365fo-agent-developer"
 args = []
 ```
 
@@ -78,8 +78,8 @@ Point the server at your D365 source repo so your **custom** classes/tables/EDTs
 are indexed too, and so the rich tools can read real signatures and clone real examples:
 
 ```toml
-[mcp_servers.d365fo]
-command = "d365fo-mcp"
+[mcp_servers.d365fo-agent-developer]
+command = "d365fo-agent-developer"
 args = ["--repo-root", "C:/path/to/your/D365Repo",
         "--rules", "C:/path/to/your/rules.json",
         "--packages-root", "C:/AOSService/PackagesLocalDirectory"]
@@ -96,7 +96,8 @@ args = ["--repo-root", "C:/path/to/your/D365Repo",
 `element_exists`, `find_element`, `search_corpus`, `get_signature`, `get_extension_chain`,
 `get_security_links`, `get_entity_exposure`, `find_similar_examples`, `scaffold_object`,
 `find_references`, `find_reverse_references`, `analyze_spec`, `generate_from_spec`, `validate_xml`,
-`lint_artifact`, `derive_entity`, `wire_security`, `compile_model`, `get_methodology`, `index_stats`.
+`lint_artifact`, `derive_entity`, `wire_security`, `compile_model`, `compile_generated`,
+`get_sql_model`, `explore_functional_unit`, `find_relations`, `get_methodology`, `index_stats`.
 
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.
