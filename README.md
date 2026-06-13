@@ -20,7 +20,12 @@ compiler.
 ```bash
 pip install d365fo-agent-developer
 # or, isolated:  pipx install d365fo-agent-developer
+# or zero-install, straight from PyPI at launch time:  uvx d365fo-agent-developer
 ```
+
+With `uvx` you can even skip the install entirely — point your MCP client at
+`uvx` with args `["d365fo-agent-developer"]` (e.g. in Claude Desktop's
+`claude_desktop_config.json`) and the latest published server runs on demand.
 
 This installs two commands: `d365fo-agent-developer` (the MCP server; `d365fo-mcp` is a short alias) and `d365fo-agent` (the CLI).
 
