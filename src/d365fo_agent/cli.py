@@ -205,6 +205,17 @@ def main(argv: list[str] | None = None) -> int:
         _dump_json(stats)
         return 0
 
+    if args.command == "extract-aot-relations":
+        from d365fo_agent.aot_relations import extract_aot_relations
+
+        def _rel_progress(root: str, count: int) -> None:
+            sys.stderr.write(f"[extract-aot-relations] {root}: {count} relations\n")
+            sys.stderr.flush()
+
+        stats = extract_aot_relations(args.root, args.db, progress=_rel_progress)
+        _dump_json(stats)
+        return 0
+
     if args.command == "serve-mcp":
         from d365fo_agent.mcp_server import build_server_from_config, default_knowledge_db
 
@@ -513,6 +524,17 @@ def _build_parser() -> argparse.ArgumentParser:
         metavar="PATTERN",
         help="fnmatch pattern of PLD packages to skip (repeatable), e.g. --exclude-package 'BAB*' "
              "to keep custom/ISV code out of a publishable standard index.",
+    )
+
+    extract_aot = subparsers.add_parser(
+        "extract-aot-relations",
+        help="Parse <Relations> from every AxTable/AxTableExtension (the AOT foreign keys) "
+             "into the SQL data model database.",
+    )
+    extract_aot.add_argument("--db", required=True, help="SQL model SQLite path, e.g. .omx/index/sqlmodel-raw.db")
+    extract_aot.add_argument(
+        "--root", action="append", required=True,
+        help="Corpus root to walk (repeatable): a PackagesLocalDirectory and/or a source tree.",
     )
 
     serve_mcp = subparsers.add_parser("serve-mcp", help="Run the stdio MCP server exposing D365 knowledge tools.")

@@ -79,6 +79,20 @@ tables it reads (each tagged with its functional unit: invoice, settlement, fina
 dimensions, ...), and optionally the full T-SQL view definition. Grounds OData / Data
 management / BYOD / reporting work in the physical model.
 
+AX tables define no SQL foreign keys — the relational graph lives in the AOT `<Relations>`
+metadata. Extract it into the same model with:
+
+```powershell
+python -m d365fo_agent.cli extract-aot-relations `
+  --db .\.omx\index\sqlmodel-raw.db `
+  --root .\D365_repo\Contoso\PackagesLocalDirectory `
+  --root .\D365_repo\Contoso\src
+```
+
+`find_relations` then returns the AOT relations between two tables (relationship type,
+cardinalities, exact join fields), and table lookups gain `aot_relations` /
+`aot_referenced_by_count` — foreign-key-grade answers without any foreign keys.
+
 ## Wiring it into a coding agent
 
 ### Claude Code (`.mcp.json` in the project root)

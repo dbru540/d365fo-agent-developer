@@ -138,6 +138,26 @@ def _describe_table(conn: sqlite3.Connection, table: sqlite3.Row) -> dict[str, o
             (table["name"],)).fetchone()[0]
         result["referenced_by_views"] = [r["view_name"] for r in refs]
         result["referenced_by_count"] = count
+    if _has_table(conn, "aot_relations"):
+        # SQL names are uppercase, AOT names are mixed-case — always compare case-insensitively.
+        out = conn.execute("""
+            SELECT table_name, relation_name, related_table, relationship_type, cardinality,
+                   related_cardinality, source_element
+            FROM aot_relations WHERE UPPER(table_name)=UPPER(?) ORDER BY relation_name LIMIT 40""",
+            (table["name"],)).fetchall()
+        result["aot_relations"] = [
+            {"name": r["relation_name"], "related_table": r["related_table"],
+             "relationship_type": r["relationship_type"], "cardinality": r["cardinality"],
+             "related_cardinality": r["related_cardinality"], "declared_on": r["source_element"],
+             "join_fields": _relation_fields(conn, r["table_name"], r["relation_name"])}
+            for r in out
+        ]
+        result["aot_relations_count"] = conn.execute(
+            "SELECT COUNT(*) FROM aot_relations WHERE UPPER(table_name)=UPPER(?)",
+            (table["name"],)).fetchone()[0]
+        result["aot_referenced_by_count"] = conn.execute(
+            "SELECT COUNT(*) FROM aot_relations WHERE UPPER(related_table)=UPPER(?)",
+            (table["name"],)).fetchone()[0]
     return result
 
 
@@ -196,6 +216,33 @@ def explore_functional_unit(db_path: str | Path, unit: str, *, top: int = 15) ->
         return result
 
 
+def _relation_fields(conn: sqlite3.Connection, table: str, relation: str) -> list[dict[str, object]]:
+    return [
+        {"kind": r["kind"], "field": r["field"], "related_field": r["related_field"],
+         "fixed_value": r["fixed_value"], "source_edt": r["source_edt"]}
+        for r in conn.execute(
+            "SELECT * FROM aot_relation_fields WHERE table_name=? AND relation_name=?",
+            (table, relation))
+    ]
+
+
+def _aot_relations_between(conn: sqlite3.Connection, a: str, b: str) -> list[dict[str, object]]:
+    """AOT <Relations> rows linking two tables, either direction, with exact join fields."""
+    rows = conn.execute("""
+        SELECT * FROM aot_relations
+        WHERE (UPPER(table_name)=UPPER(?) AND UPPER(related_table)=UPPER(?))
+           OR (UPPER(table_name)=UPPER(?) AND UPPER(related_table)=UPPER(?))
+        ORDER BY table_name, relation_name""", (a, b, b, a)).fetchall()
+    return [
+        {"from": r["table_name"], "to": r["related_table"], "name": r["relation_name"],
+         "relationship_type": r["relationship_type"], "cardinality": r["cardinality"],
+         "related_cardinality": r["related_cardinality"], "edt_relation": bool(r["edt_relation"]),
+         "declared_on": r["source_element"],
+         "join_fields": _relation_fields(conn, r["table_name"], r["relation_name"])}
+        for r in rows
+    ]
+
+
 def _classify_name(conn: sqlite3.Connection, name: str) -> tuple[str, str] | None:
     """Return (kind, canonical_name) where kind is 'view' or 'table', or None."""
     row = conn.execute("SELECT name FROM sql_views WHERE UPPER(name)=UPPER(?)", (name,)).fetchone()
@@ -249,6 +296,8 @@ def find_relations(db_path: str | Path, a: str, b: str) -> dict[str, object]:
                   SELECT view_name FROM model_view_tables WHERE table_name = ?
                   INTERSECT SELECT view_name FROM model_view_tables WHERE table_name = ?)""",
                 (name_a, name_b)).fetchone()[0]
+            if _has_table(conn, "aot_relations"):
+                result["aot_relations"] = _aot_relations_between(conn, name_a, name_b)
         elif kind_a == "view" and kind_b == "view":
             shared = [{"table": r[0], "unit": units.get(r[0])} for r in conn.execute("""
                 SELECT table_name FROM model_view_tables WHERE view_name = ?
