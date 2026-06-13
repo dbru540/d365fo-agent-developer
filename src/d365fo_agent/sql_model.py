@@ -113,6 +113,18 @@ def _describe_table(conn: sqlite3.Connection, table: sqlite3.Row) -> dict[str, o
             "SELECT column_name FROM sql_pk_columns WHERE object_id=? ORDER BY key_ordinal",
             (table["object_id"],))],
     }
+    if _has_table(conn, "sql_unique_index_columns"):
+        keys: dict[str, list[str]] = {}
+        for r in conn.execute(
+            "SELECT index_name, column_name FROM sql_unique_index_columns "
+            "WHERE table_name=? ORDER BY index_name, key_ordinal", (table["name"],)):
+            keys.setdefault(r["index_name"], []).append(r["column_name"])
+        result["alternate_keys"] = [{"index": k, "columns": v} for k, v in keys.items()]
+    if _has_table(conn, "sql_table_rowcounts"):
+        rc = conn.execute("SELECT row_count FROM sql_table_rowcounts WHERE table_name=?",
+                          (table["name"],)).fetchone()
+        if rc is not None:
+            result["row_count"] = rc["row_count"]
     if _has_table(conn, "functional_units"):
         fu = conn.execute("SELECT unit FROM functional_units WHERE table_name=?", (table["name"],)).fetchone()
         if fu is not None:

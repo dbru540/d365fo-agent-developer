@@ -26,6 +26,8 @@ def create_sql_model_fixture(path: Path) -> None:
     CREATE TABLE functional_units(table_name TEXT PRIMARY KEY, unit TEXT, how TEXT);
     CREATE TABLE functional_views(view_name TEXT PRIMARY KEY, unit TEXT, units_spanned INTEGER);
     CREATE TABLE unit_interfaces(unit_a TEXT, unit_b TEXT, n_views INTEGER, examples TEXT);
+    CREATE TABLE sql_unique_index_columns(table_name TEXT, index_name TEXT, column_name TEXT, key_ordinal INTEGER);
+    CREATE TABLE sql_table_rowcounts(table_name TEXT, row_count INTEGER);
     """)
     conn.execute("INSERT INTO sql_views VALUES(1,'dbo','CUSTSETTLEMENTENTITY','2024-01-01','2024-01-01',"
                  "'CREATE VIEW CUSTSETTLEMENTENTITY AS SELECT ... FROM CUSTSETTLEMENT JOIN CUSTTRANSOPEN ...')")
@@ -60,6 +62,11 @@ def create_sql_model_fixture(path: Path) -> None:
     conn.execute("INSERT INTO model_view_tables VALUES(2,'CUSTPAYMENTENTITY','CUSTTRANSOPEN','direct')")
     conn.execute("INSERT INTO functional_views VALUES('CUSTPAYMENTENTITY','paiement',2)")
     conn.execute("INSERT INTO unit_interfaces VALUES('lettrage-reglement','paiement',12,'CUSTPAYMENTENTITY')")
+    conn.executemany("INSERT INTO sql_unique_index_columns VALUES(?,?,?,?)", [
+        ("CUSTSETTLEMENT", "I_SETTLEKEY", "DATAAREAID", 1),
+        ("CUSTSETTLEMENT", "I_SETTLEKEY", "TRANSRECID", 2),
+    ])
+    conn.execute("INSERT INTO sql_table_rowcounts VALUES('CUSTSETTLEMENT', 42000)")
     conn.commit()
     conn.close()
 
@@ -105,6 +112,9 @@ class SqlModelTests(unittest.TestCase):
         self.assertEqual(result["primary_key"], ["RECID"])
         self.assertEqual(result["functional_unit"], "lettrage-reglement")
         self.assertIn("CUSTSETTLEMENTENTITY", result["referenced_by_views"])
+        self.assertEqual(result["alternate_keys"],
+                         [{"index": "I_SETTLEKEY", "columns": ["DATAAREAID", "TRANSRECID"]}])
+        self.assertEqual(result["row_count"], 42000)
 
     def test_not_found_gives_suggestions(self) -> None:
         from d365fo_agent.sql_model import get_sql_model
