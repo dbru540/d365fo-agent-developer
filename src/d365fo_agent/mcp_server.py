@@ -646,7 +646,8 @@ class D365MCPServer:
             from d365fo_agent.guidance import list_guidance as _list
 
             return {"topics": _list(self.guidance, platform=args.get("platform"),
-                                    object_type=args.get("object_type"))}
+                                    object_type=args.get("object_type"),
+                                    type_profiles=self.type_profiles)}
 
         @tool(
             "get_guidance",
@@ -654,7 +655,10 @@ class D365MCPServer:
             "RULES (what is valid where, constraints) and the LOGIC (when/why, pitfalls) needed to "
             "WRITE correct code — plus each referenced element annotated with whether it exists in "
             "the corpus (anti-hallucination) and a REAL example pulled from the index. Call this "
-            "BEFORE writing X++ for a task so you code from the rules, not from a guess.",
+            "BEFORE writing X++ for a task so you code from the rules, not from a guess. Works for "
+            "the rich how-to topics AND for ANY AOT object type by name (e.g. AxKPI, AxMap, "
+            "AxWorkflowApproval) — it then returns that type's corpus-learned required structure "
+            "plus a real example and how to scaffold it.",
             {"type": "object", "properties": {
                 "topic": {"type": "string", "description": "Topic id, e.g. coc-extension (see list_guidance)"},
             }, "required": ["topic"]},
@@ -663,7 +667,8 @@ class D365MCPServer:
             from d365fo_agent.guidance import get_guidance as _get
 
             return _get(self.guidance, args["topic"], index=self._index_if_ready(),
-                        ax_index=self._ax_index_if_ready(), roots=self.file_roots)
+                        ax_index=self._ax_index_if_ready(), roots=self.file_roots,
+                        type_profiles=self.type_profiles)
 
         @tool(
             "search_guidance",
@@ -678,7 +683,8 @@ class D365MCPServer:
         def search_guidance(args: dict[str, Any]) -> dict[str, Any]:
             from d365fo_agent.guidance import search_guidance as _search
 
-            return {"results": _search(self.guidance, args["query"], platform=args.get("platform"))}
+            return {"results": _search(self.guidance, args["query"], platform=args.get("platform"),
+                                       type_profiles=self.type_profiles)}
 
         @tool(
             "get_sql_model",

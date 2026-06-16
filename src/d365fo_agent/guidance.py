@@ -121,7 +121,8 @@ def _platform_matches(topic: Topic, platform: str | None) -> bool:
 
 
 def list_guidance(
-    topics: dict[str, Topic], *, platform: str | None = None, object_type: str | None = None
+    topics: dict[str, Topic], *, platform: str | None = None, object_type: str | None = None,
+    type_profiles: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     out = []
     for t in topics.values():
@@ -130,8 +131,18 @@ def list_guidance(
         if object_type and object_type not in t.object_types:
             continue
         out.append({"id": t.id, "title": t.title, "summary": t.summary,
-                    "platform": t.platform, "object_types": t.object_types})
-    return sorted(out, key=lambda d: d["id"])
+                    "platform": t.platform, "object_types": t.object_types, "kind": "guide"})
+    # Long-tail: one structural reference per AOT type (d365fo, corpus-learned).
+    if type_profiles and platform in (None, "d365fo", "both"):
+        hand_types = {ot for t in topics.values() for ot in t.object_types}
+        for entry in list_type_topics(type_profiles):
+            if object_type and object_type != entry["id"]:
+                continue
+            # Don't shadow a rich hand-authored guide for the same type.
+            if entry["id"] in hand_types and not object_type:
+                pass
+            out.append(entry)
+    return sorted(out, key=lambda d: (d.get("kind") != "guide", d["id"]))
 
 
 def get_guidance(
@@ -141,17 +152,26 @@ def get_guidance(
     index: Any = None,
     ax_index: Any = None,
     roots: list[Path] | None = None,
+    type_profiles: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Full topic: sections (syntax/rules/logic), grounding status, a real corpus example.
 
     Platform-routed: an ``ax2012`` topic grounds against ``ax_index``, otherwise against the
     D365 F&O ``index``. Without the relevant index the prose is still returned (degraded mode) —
     grounding is listed but not verified (``in_index`` is None) and no example is pulled.
+
+    Long-tail fallback: when ``topic_id`` is not a hand-authored topic but names an AOT type known
+    to ``type_profiles``, a corpus-learned structural reference for that type is synthesized.
     """
     topic = topics.get(topic_id)
     if topic is None:
+        synth = synthesize_type_topic(topic_id, type_profiles, index=index, roots=roots)
+        if synth is not None:
+            return synth
         lower = topic_id.lower()
         suggestions = sorted(tid for tid in topics if lower in tid.lower() or tid.lower() in lower)
+        suggestions += [e["id"] for e in list_type_topics(type_profiles)
+                        if lower in e["id"].lower()][:5]
         return {"found": False, "topic": topic_id,
                 "error": "unknown guidance topic", "suggestions": suggestions}
 
@@ -192,7 +212,8 @@ def _topic_text(topic: Topic) -> str:
 
 
 def search_guidance(
-    topics: dict[str, Topic], query: str, *, platform: str | None = None, limit: int = 5
+    topics: dict[str, Topic], query: str, *, platform: str | None = None, limit: int = 5,
+    type_profiles: dict[str, Any] | None = None,
 ) -> list[dict[str, Any]]:
     terms = [t for t in re.split(r"\W+", query.lower()) if len(t) > 2]
     scored = []
@@ -206,7 +227,14 @@ def search_guidance(
         score += 3 * sum(1 for term in terms if term in head)
         if score:
             scored.append((score, {"id": t.id, "title": t.title, "summary": t.summary,
-                                   "platform": t.platform, "score": score}))
+                                   "platform": t.platform, "kind": "guide", "score": score}))
+    # Long-tail type references match on the type name (e.g. "AxKPI", "workflow").
+    if type_profiles and platform in (None, "d365fo", "both"):
+        for entry in list_type_topics(type_profiles):
+            name = entry["id"].lower()
+            score = 4 * sum(1 for term in terms if term in name)
+            if score:
+                scored.append((score, {**entry, "score": score}))
     scored.sort(key=lambda pair: pair[0], reverse=True)
     return [entry for _, entry in scored[:limit]]
 
@@ -226,6 +254,84 @@ def grounding_report(
         if missing:
             report[topic.id] = missing
     return report
+
+
+def _find_profile(profiles: dict[str, Any] | None, name: str) -> dict[str, Any] | None:
+    """Resolve a type profile by AOT type name, case-insensitive and Ax-prefix tolerant."""
+    if not profiles:
+        return None
+    if name in profiles:
+        return profiles[name]
+    low = name.lower()
+    wanted = {low, low if low.startswith("ax") else "ax" + low}
+    for key, prof in profiles.items():
+        if key.lower() in wanted:
+            return prof
+    return None
+
+
+def synthesize_type_topic(
+    ax_type: str, profiles: dict[str, Any] | None, *, index: Any = None, roots: list[Path] | None = None
+) -> dict[str, Any] | None:
+    """Build a corpus-learned structural reference for ANY AOT type from its learned profile.
+
+    This is how the knowledge base covers the long tail of ~70 object types WITHOUT hand-authoring
+    one file each: the structure (required/recommended child nodes) is derived from real corpus
+    examples (the type profile), and a real example is pulled live. Grounded by construction.
+    """
+    prof = _find_profile(profiles, ax_type)
+    if prof is None:
+        return None
+    t = str(prof.get("artifact_type", ax_type))
+    required = prof.get("required", [])
+    recommended = prof.get("recommended", [])
+    sections = {
+        "structure": ("Child nodes present in virtually every real " + t + ": "
+                      + ", ".join(required) + "." if required
+                      else "No near-universal child structure was learned for " + t + "."),
+        "recommended": ("Commonly present (optional): " + ", ".join(recommended) + ".")
+                       if recommended else "No additional commonly-present nodes.",
+        "how to create": (
+            "Do NOT hand-write the XML from memory. Clone a real one: scaffold_object(\"" + t + "\") "
+            "copies a real corpus example, renamed, as your starting skeleton; fill it in, then "
+            "validate_xml against the learned profile to confirm the required nodes are present. "
+            "Use get_signature / find_similar_examples to study real instances first."),
+    }
+    example = None
+    if index is not None:
+        try:
+            rows = index.sample_by_type(t, limit=1)
+        except Exception:  # noqa: BLE001
+            rows = []
+        if rows:
+            r = rows[0]
+            example = {"found": True, "name": r.get("name"), "artifact_type": r.get("artifact_type"),
+                       "model": r.get("model"), "relative_path": r.get("relative_path")}
+        else:
+            example = {"found": False}
+    return {
+        "found": True, "id": t, "title": f"{t} — object structure (corpus-learned)",
+        "summary": f"Structural contract for {t}, learned from real corpus examples.",
+        "platform": "d365fo", "object_types": [t], "kind": "type-reference",
+        "sections": sections, "grounding": [], "example": example,
+        "related_topics": [], "related_tools": ["scaffold_object", "validate_xml", "get_signature",
+                                                "find_similar_examples"],
+    }
+
+
+def list_type_topics(profiles: dict[str, Any] | None) -> list[dict[str, Any]]:
+    """One catalogue entry per AOT type known to the learned profiles (the long-tail coverage)."""
+    if not profiles:
+        return []
+    out = []
+    for prof in profiles.values():
+        t = str(prof.get("artifact_type", ""))
+        if not t:
+            continue
+        out.append({"id": t, "title": f"{t} — object structure (corpus-learned)",
+                    "summary": f"Structural contract for {t}, learned from real corpus examples.",
+                    "platform": "d365fo", "object_types": [t], "kind": "type-reference"})
+    return sorted(out, key=lambda d: d["id"])
 
 
 def default_guidance_dir() -> Path | None:

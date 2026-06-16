@@ -110,6 +110,13 @@ logic for coding D365/AX objects (not code to paste). Each topic is platform-tag
 (`d365fo` | `ax2012`), grounded against the corpus (referenced elements are exists-checked), and
 illustrated with a real example pulled live from the index.
 
+**Full object-type coverage.** Beyond the rich hand-authored how-to topics (Chain of Command,
+table extensions, data entities, security, events, forms, queries/views/menu items, EDT/enum/
+labels/number sequences), `get_guidance`/`list_guidance` cover **every AOT object type** (~70):
+ask for any type by name (e.g. `AxKPI`, `AxMap`, `AxWorkflowApproval`) and get its corpus-learned
+required structure, a real example, and how to scaffold it — derived from the learned type
+profiles, so it is grounded by construction with no hand-written-per-type files.
+
 **AX 2012 (multi-platform).** The knowledge base is platform-aware. AX 2012 differs from D365 F&O
 (no Chain of Command, overlayering, `.xpo` exports), so it gets its own grounding: index an AX 2012
 corpus exported as `.xpo` with `d365fo-agent build-ax-index --db ax2012.db --root <folder>`, then

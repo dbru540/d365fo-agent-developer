@@ -62,6 +62,15 @@ class _FakeIndex:
         return [{"name": "CustTable_CoCSample", "artifact_type": "AxClass",
                  "model": "AppSuite", "relative_path": "x/AxClass/CustTable_CoCSample.xml"}]
 
+    def sample_by_type(self, artifact_type: str, *, custom_first: bool = True, limit: int = 5):
+        return [{"name": f"Real{artifact_type}Example", "artifact_type": artifact_type,
+                 "model": "AppSuite", "relative_path": f"x/{artifact_type}/Real.xml"}]
+
+
+_PROFILES = {"AxView": {"artifact_type": "AxView",
+                        "required": ["Fields", "Relations", "ViewMetadata", "Name"],
+                        "recommended": ["Label"], "known": []}}
+
 
 class GuidanceTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -148,6 +157,34 @@ class GuidanceTests(unittest.TestCase):
         out = get_guidance(topics, "ax2012-overlayer", index=d365, ax_index=ax, roots=[Path(".")])
         grounding = {g["name"]: g["in_index"] for g in out["grounding"]}
         self.assertEqual(grounding, {"SysOperationServiceController": True})
+
+    def test_synthesize_type_reference_from_profile(self) -> None:
+        from d365fo_agent.guidance import synthesize_type_topic
+
+        out = synthesize_type_topic("axview", _PROFILES, index=_FakeIndex(set()))
+        self.assertEqual(out["id"], "AxView")
+        self.assertEqual(out["kind"], "type-reference")
+        self.assertIn("Fields", out["sections"]["structure"])
+        self.assertIn("scaffold_object", out["sections"]["how to create"])
+        self.assertEqual(out["example"]["name"], "RealAxViewExample")
+        self.assertIsNone(synthesize_type_topic("AxNope", _PROFILES))
+
+    def test_get_guidance_falls_back_to_type_reference(self) -> None:
+        from d365fo_agent.guidance import get_guidance, load_guidance
+
+        topics = load_guidance(self.dir)  # no AxView hand topic here
+        out = get_guidance(topics, "AxView", index=_FakeIndex(set()), type_profiles=_PROFILES)
+        self.assertTrue(out["found"])
+        self.assertEqual(out["kind"], "type-reference")
+
+    def test_list_includes_type_references(self) -> None:
+        from d365fo_agent.guidance import list_guidance, load_guidance
+
+        topics = load_guidance(self.dir)
+        listed = list_guidance(topics, type_profiles=_PROFILES)
+        kinds = {e["id"]: e.get("kind") for e in listed}
+        self.assertEqual(kinds.get("AxView"), "type-reference")
+        self.assertEqual(kinds.get("coc-extension"), "guide")
 
     def test_unknown_topic_suggests(self) -> None:
         from d365fo_agent.guidance import get_guidance, load_guidance
