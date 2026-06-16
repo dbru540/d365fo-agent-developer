@@ -102,7 +102,13 @@ args = ["--repo-root", "C:/path/to/your/D365Repo",
 `get_security_links`, `get_entity_exposure`, `find_similar_examples`, `scaffold_object`,
 `find_references`, `find_reverse_references`, `analyze_spec`, `generate_from_spec`, `validate_xml`,
 `lint_artifact`, `derive_entity`, `wire_security`, `compile_model`, `compile_generated`,
-`get_sql_model`, `explore_functional_unit`, `find_relations`, `get_methodology`, `index_stats`.
+`get_sql_model`, `explore_functional_unit`, `find_relations`, `list_guidance`, `get_guidance`,
+`search_guidance`, `get_methodology`, `index_stats`.
+
+The `*_guidance` tools are a queryable X++ **development knowledge base** — the rules, syntax and
+logic for coding D365/AX objects (not code to paste). Each topic is platform-tagged
+(`d365fo` | `ax2012`), grounded against the corpus (referenced elements are exists-checked), and
+illustrated with a real example pulled live from the index.
 
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.

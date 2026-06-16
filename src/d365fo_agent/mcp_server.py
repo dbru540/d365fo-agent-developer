@@ -23,6 +23,7 @@ import json
 import os
 import sys
 import tempfile
+import threading
 import traceback
 from pathlib import Path
 from typing import Any, Callable
@@ -61,6 +62,7 @@ class D365MCPServer:
         lint_config: "linter.LintConfig | None" = None,
         extra_roots: "list[Path] | None" = None,
         sql_model_path: Path | None = None,
+        auto_fetch_url: str | None = None,
     ) -> None:
         self.sql_model_path = sql_model_path
         self.repo_root = repo_root
@@ -69,22 +71,83 @@ class D365MCPServer:
         self.packages_root = packages_root
         self.methodology_path = methodology_path
         self.lint_config = lint_config or linter.LintConfig()
+        # auto_fetch_url: when set and the index file is absent, download it in the background on
+        # first serve so the server never crashes on a missing index (no manual fetch-knowledge).
+        self.auto_fetch_url = auto_fetch_url
+        self._autofetch_started = False
         # extra_roots: additional source corpora indexed into the same DB (their relative_path
         # values resolve from their own root) — e.g. a second client repo.
         self.file_roots = [repo_root, *(extra_roots or [])] + ([packages_root] if packages_root else [])
         self._index: D365Index | None = None
         self._catalog: Any = None  # lazily built; reused across calls
         self._type_profiles: dict[str, dict[str, Any]] | None = None
+        self._guidance: dict[str, Any] | None = None
         self.tools: dict[str, dict[str, Any]] = {}
         self._register_tools()
 
     # -- lazy resources ------------------------------------------------------------
 
     @property
+    def guidance(self) -> dict[str, Any]:
+        """X++ development knowledge base (rules/syntax/logic topics), loaded once from the bundled
+        data/guidance directory. Empty dict if none is shipped (degrades gracefully)."""
+        if self._guidance is None:
+            from d365fo_agent.guidance import default_guidance_dir, load_guidance
+
+            d = default_guidance_dir()
+            self._guidance = load_guidance(d) if d else {}
+        return self._guidance
+
+    def _index_if_ready(self) -> "D365Index | None":
+        """The index when its file is present, else None — so guidance/example lookups degrade
+        instead of raising while an auto-fetch is still in flight."""
+        if self.db_path and Path(self.db_path).exists():
+            return self.index
+        return None
+
+    @property
     def index(self) -> D365Index:
         if self._index is None:
+            # Never let sqlite CREATE an empty DB at a not-yet-downloaded cache path: that would
+            # poison the auto-fetch (which skips when the file exists) and silently return nothing.
+            if not self.db_path or not Path(self.db_path).exists():
+                if self.auto_fetch_url:
+                    raise RuntimeError(
+                        "Knowledge index not ready yet — it is downloading in the background "
+                        "(first run can take ~20 s). Retry this call shortly. Methodology, "
+                        "validation and scaffolding work meanwhile.")
+                raise RuntimeError(
+                    "No knowledge index available. Run 'd365fo-agent fetch-knowledge' or pass "
+                    "--db <index.db> / --repo-root <your D365 repo>.")
             self._index = D365Index(self.db_path)
         return self._index
+
+    def _maybe_start_autofetch(self) -> None:
+        """If configured and the index file is absent, download it once in a daemon thread so the
+        stdio handshake is never blocked and the server never crashes on a missing index."""
+        if self._autofetch_started or not self.auto_fetch_url:
+            return
+        if self.db_path and Path(self.db_path).exists():
+            return
+        self._autofetch_started = True
+
+        def _worker() -> None:
+            from d365fo_agent.knowledge_fetch import fetch_knowledge
+
+            _log("knowledge index missing — downloading the standard D365 index in the background "
+                 "(first run, ~14 MB)…")
+            try:
+                result = fetch_knowledge(self.auto_fetch_url, dest=self.db_path)
+            except Exception as exc:  # noqa: BLE001 - never let the worker take down the server
+                _log(f"auto-fetch error: {exc}")
+                return
+            if result.get("ok"):
+                self._index = None  # force a reopen on the next index access
+                _log(f"knowledge index ready: {self.db_path} — index-backed tools are now live.")
+            else:
+                _log(f"auto-fetch failed: {result.get('error')} (run 'd365fo-agent fetch-knowledge')")
+
+        threading.Thread(target=_worker, name="d365fo-autofetch", daemon=True).start()
 
     @property
     def type_profiles(self) -> dict[str, dict[str, Any]]:
@@ -559,6 +622,54 @@ class D365MCPServer:
                                  else {"available": False}}
 
         @tool(
+            "list_guidance",
+            "List the available X++ development guidance topics (rules, syntax and logic for coding "
+            "D365/AX objects — NOT code snippets). Filter by platform (d365fo | ax2012) or AOT "
+            "object type. Call this to discover what coding guidance exists before get_guidance.",
+            {"type": "object", "properties": {
+                "platform": {"type": "string", "description": "d365fo | ax2012 | both"},
+                "object_type": {"type": "string", "description": "AOT type, e.g. AxClass, AxTableExtension"},
+            }},
+        )
+        def list_guidance(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.guidance import list_guidance as _list
+
+            return {"topics": _list(self.guidance, platform=args.get("platform"),
+                                    object_type=args.get("object_type"))}
+
+        @tool(
+            "get_guidance",
+            "Return the X++ coding knowledge for a topic: the SYNTAX (language constructs), the "
+            "RULES (what is valid where, constraints) and the LOGIC (when/why, pitfalls) needed to "
+            "WRITE correct code — plus each referenced element annotated with whether it exists in "
+            "the corpus (anti-hallucination) and a REAL example pulled from the index. Call this "
+            "BEFORE writing X++ for a task so you code from the rules, not from a guess.",
+            {"type": "object", "properties": {
+                "topic": {"type": "string", "description": "Topic id, e.g. coc-extension (see list_guidance)"},
+            }, "required": ["topic"]},
+        )
+        def get_guidance(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.guidance import get_guidance as _get
+
+            return _get(self.guidance, args["topic"], index=self._index_if_ready(),
+                        roots=self.file_roots)
+
+        @tool(
+            "search_guidance",
+            "Find the X++ coding guidance topic(s) that match a task phrased in natural language "
+            "(e.g. 'how do I add a field to a standard table', 'extend a method', 'expose an "
+            "entity over OData'). Returns ranked topics; follow with get_guidance.",
+            {"type": "object", "properties": {
+                "query": {"type": "string", "description": "Task in natural language"},
+                "platform": {"type": "string", "description": "d365fo | ax2012 | both"},
+            }, "required": ["query"]},
+        )
+        def search_guidance(args: dict[str, Any]) -> dict[str, Any]:
+            from d365fo_agent.guidance import search_guidance as _search
+
+            return {"results": _search(self.guidance, args["query"], platform=args.get("platform"))}
+
+        @tool(
             "get_sql_model",
             "Return the REAL SQL shape of a data entity or table as deployed in a D365 database: "
             "typed SQL columns, the base tables it reads (each with its functional unit — invoice, "
@@ -714,6 +825,7 @@ class D365MCPServer:
             except (AttributeError, ValueError):
                 pass
         _log(f"serving {len(self.tools)} tools; repo={self.repo_root} db={self.db_path}")
+        self._maybe_start_autofetch()
         for line in stdin:
             line = line.strip()
             if not line:
@@ -770,6 +882,7 @@ def build_server_from_config(
     lint_rules_path: str | Path | None = None,
     extra_roots: "list[str | Path] | None" = None,
     sql_model_path: str | Path | None = None,
+    auto_fetch_url: str | None = None,
 ) -> D365MCPServer:
     # repo_root/rules are OPTIONAL: in "embedded knowledge base" mode the server runs from a
     # prebuilt index alone (no custom repo). They are only needed for catalog-backed tools.
@@ -800,7 +913,7 @@ def build_server_from_config(
         sibling = db_path.parent / "sqlmodel-raw.db"
         sql_model = sibling if sibling.exists() else None
     return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config,
-                         extra_roots=roots, sql_model_path=sql_model)
+                         extra_roots=roots, sql_model_path=sql_model, auto_fetch_url=auto_fetch_url)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -827,18 +940,28 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     # Embedded-knowledge mode: run from a prebuilt index alone (no repo). Default the DB to the
-    # downloaded knowledge cache; only require a source if neither a DB nor a repo is available.
+    # downloaded knowledge cache.
     db = args.db or (str(default_knowledge_db()) if default_knowledge_db().exists() else None)
+    auto_fetch_url = None
     if not db and not args.repo_root:
-        parser.error(
-            "No knowledge index found. Run 'd365fo-agent fetch-knowledge' to download the standard "
-            "D365 knowledge base, or pass --db <index.db> / --repo-root <your D365 repo>."
-        )
+        # No index, no repo: instead of crashing, start in degraded mode (methodology, validation
+        # and scaffolding still work from bundled data) and auto-download the standard index in the
+        # background on first run. Opt out with D365FO_NO_AUTOFETCH=1 (offline/CI).
+        from d365fo_agent.knowledge_fetch import DEFAULT_KNOWLEDGE_URL
+
+        if DEFAULT_KNOWLEDGE_URL and not os.environ.get("D365FO_NO_AUTOFETCH"):
+            db = str(default_knowledge_db())  # target cache path; the file does not exist yet
+            auto_fetch_url = DEFAULT_KNOWLEDGE_URL
+        else:
+            parser.error(
+                "No knowledge index found. Run 'd365fo-agent fetch-knowledge' to download the "
+                "standard D365 knowledge base, or pass --db <index.db> / --repo-root <your repo>."
+            )
 
     server = build_server_from_config(
         args.repo_root, args.rules, db_path=db, packages_root=args.packages_root,
         methodology_path=args.methodology, lint_rules_path=args.lint_rules,
-        extra_roots=args.extra_root, sql_model_path=args.sql_model,
+        extra_roots=args.extra_root, sql_model_path=args.sql_model, auto_fetch_url=auto_fetch_url,
     )
     server.serve_stdio()
     return 0

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "d365fo-agent-developer"
-version = "0.6.2"
+version = "0.6.3"
 description = "Local D365 F&O knowledge toolkit: corpus indexing (SQLite FTS5), deterministic generation, and an MCP server that grounds coding agents (Claude Code, Codex) in real AOT facts."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -56,4 +56,4 @@ where = ["src"]
 [tool.setuptools.package-data]
 # Methodology, default lint rules, and a default learned type-profile ship inside the package so
 # the server works after a plain `pip install` (no source tree needed).
-d365fo_agent = ["data/*"]
+d365fo_agent = ["data/*", "data/guidance/*.md"]
