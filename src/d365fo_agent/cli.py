@@ -205,6 +205,19 @@ def main(argv: list[str] | None = None) -> int:
         _dump_json(stats)
         return 0
 
+    if args.command == "build-ax-index":
+        from d365fo_agent.ax2012_indexer import build_ax2012_catalog
+        from d365fo_agent.index_store import D365Index
+
+        catalog = build_ax2012_catalog(args.root)
+        db_path = Path(args.db)
+        if args.rebuild and db_path.exists():
+            db_path.unlink()
+        with D365Index(db_path) as index:
+            index.build_from_catalog(catalog, source="ax2012")
+            _dump_json({"platform": "ax2012", "xpo_roots": args.root, **index.stats()})
+        return 0
+
     if args.command == "extract-aot-relations":
         from d365fo_agent.aot_relations import extract_aot_relations
 
@@ -234,6 +247,7 @@ def main(argv: list[str] | None = None) -> int:
             lint_rules_path=args.lint_rules,
             extra_roots=args.extra_root,
             sql_model_path=args.sql_model,
+            ax_db_path=args.ax_db,
         )
         server.serve_stdio()
         return 0
@@ -526,6 +540,15 @@ def _build_parser() -> argparse.ArgumentParser:
              "to keep custom/ISV code out of a publishable standard index.",
     )
 
+    build_ax = subparsers.add_parser(
+        "build-ax-index",
+        help="Index a Dynamics AX 2012 corpus exported as .xpo files into a separate SQLite index.",
+    )
+    build_ax.add_argument("--db", required=True, help="Output AX 2012 index path, e.g. .omx/index/ax2012.db")
+    build_ax.add_argument("--root", action="append", required=True,
+                          help="Folder (or .xpo file) to scan for AX 2012 exports (repeatable).")
+    build_ax.add_argument("--rebuild", action="store_true", help="Delete and rebuild from scratch.")
+
     extract_aot = subparsers.add_parser(
         "extract-aot-relations",
         help="Parse <Relations> from every AxTable/AxTableExtension (the AOT foreign keys) "
@@ -547,6 +570,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Additional source corpus root indexed into the same DB (repeatable).",
     )
     serve_mcp.add_argument("--lint-rules", help="X++ lint rules JSON (defaults to the bundled rules).")
+    serve_mcp.add_argument("--ax-db", help="AX 2012 index (from build-ax-index) — grounds platform:ax2012 guidance.")
     serve_mcp.add_argument(
         "--sql-model",
         help="SQLite SQL data model extracted from a deployed D365 database (enables get_sql_model; "

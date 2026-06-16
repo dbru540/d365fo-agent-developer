@@ -110,6 +110,12 @@ logic for coding D365/AX objects (not code to paste). Each topic is platform-tag
 (`d365fo` | `ax2012`), grounded against the corpus (referenced elements are exists-checked), and
 illustrated with a real example pulled live from the index.
 
+**AX 2012 (multi-platform).** The knowledge base is platform-aware. AX 2012 differs from D365 F&O
+(no Chain of Command, overlayering, `.xpo` exports), so it gets its own grounding: index an AX 2012
+corpus exported as `.xpo` with `d365fo-agent build-ax-index --db ax2012.db --root <folder>`, then
+serve with `--ax-db ax2012.db` (env `D365FO_AX_DB`). `platform: ax2012` guidance topics then ground
+and pull examples from that index; `d365fo` topics keep using the D365 F&O knowledge base.
+
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.
 

@@ -63,8 +63,10 @@ class D365MCPServer:
         extra_roots: "list[Path] | None" = None,
         sql_model_path: Path | None = None,
         auto_fetch_url: str | None = None,
+        ax_db_path: Path | None = None,
     ) -> None:
         self.sql_model_path = sql_model_path
+        self.ax_db_path = ax_db_path
         self.repo_root = repo_root
         self.rules_path = rules_path
         self.db_path = db_path
@@ -79,6 +81,7 @@ class D365MCPServer:
         # values resolve from their own root) — e.g. a second client repo.
         self.file_roots = [repo_root, *(extra_roots or [])] + ([packages_root] if packages_root else [])
         self._index: D365Index | None = None
+        self._ax_index: D365Index | None = None
         self._catalog: Any = None  # lazily built; reused across calls
         self._type_profiles: dict[str, dict[str, Any]] | None = None
         self._guidance: dict[str, Any] | None = None
@@ -104,6 +107,14 @@ class D365MCPServer:
         if self.db_path and Path(self.db_path).exists():
             return self.index
         return None
+
+    def _ax_index_if_ready(self) -> "D365Index | None":
+        """The AX 2012 index when configured and present, else None."""
+        if not self.ax_db_path or not Path(self.ax_db_path).exists():
+            return None
+        if self._ax_index is None:
+            self._ax_index = D365Index(self.ax_db_path)
+        return self._ax_index
 
     @property
     def index(self) -> D365Index:
@@ -652,7 +663,7 @@ class D365MCPServer:
             from d365fo_agent.guidance import get_guidance as _get
 
             return _get(self.guidance, args["topic"], index=self._index_if_ready(),
-                        roots=self.file_roots)
+                        ax_index=self._ax_index_if_ready(), roots=self.file_roots)
 
         @tool(
             "search_guidance",
@@ -883,6 +894,7 @@ def build_server_from_config(
     extra_roots: "list[str | Path] | None" = None,
     sql_model_path: str | Path | None = None,
     auto_fetch_url: str | None = None,
+    ax_db_path: str | Path | None = None,
 ) -> D365MCPServer:
     # repo_root/rules are OPTIONAL: in "embedded knowledge base" mode the server runs from a
     # prebuilt index alone (no custom repo). They are only needed for catalog-backed tools.
@@ -912,8 +924,10 @@ def build_server_from_config(
     if sql_model is None:
         sibling = db_path.parent / "sqlmodel-raw.db"
         sql_model = sibling if sibling.exists() else None
+    ax_db = Path(ax_db_path).resolve() if ax_db_path else None
     return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config,
-                         extra_roots=roots, sql_model_path=sql_model, auto_fetch_url=auto_fetch_url)
+                         extra_roots=roots, sql_model_path=sql_model, auto_fetch_url=auto_fetch_url,
+                         ax_db_path=ax_db)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -936,6 +950,10 @@ def main(argv: list[str] | None = None) -> int:
         "--sql-model", default=os.environ.get("D365FO_SQL_MODEL"),
         help="SQLite SQL data model extracted from a deployed D365 database (enables get_sql_model; "
              "defaults to a sqlmodel-raw.db next to the knowledge index).",
+    )
+    parser.add_argument(
+        "--ax-db", default=os.environ.get("D365FO_AX_DB"),
+        help="AX 2012 index (from build-ax-index) — grounds platform:ax2012 guidance topics.",
     )
     args = parser.parse_args(argv)
 
@@ -962,6 +980,7 @@ def main(argv: list[str] | None = None) -> int:
         args.repo_root, args.rules, db_path=db, packages_root=args.packages_root,
         methodology_path=args.methodology, lint_rules_path=args.lint_rules,
         extra_roots=args.extra_root, sql_model_path=args.sql_model, auto_fetch_url=auto_fetch_url,
+        ax_db_path=args.ax_db,
     )
     server.serve_stdio()
     return 0

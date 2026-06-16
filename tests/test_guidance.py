@@ -138,6 +138,17 @@ class GuidanceTests(unittest.TestCase):
         report2 = grounding_report(topics, index2)
         self.assertIn("SysExtension", report2.get("coc-extension", []))
 
+    def test_ax2012_topic_grounds_against_ax_index(self) -> None:
+        # An ax2012 topic must ground against ax_index, NOT the D365 F&O index.
+        from d365fo_agent.guidance import get_guidance, load_guidance
+
+        topics = load_guidance(self.dir)
+        d365 = _FakeIndex(present=set())  # empty F&O index
+        ax = _FakeIndex(present={"SysOperationServiceController"})  # ax2012 corpus
+        out = get_guidance(topics, "ax2012-overlayer", index=d365, ax_index=ax, roots=[Path(".")])
+        grounding = {g["name"]: g["in_index"] for g in out["grounding"]}
+        self.assertEqual(grounding, {"SysOperationServiceController": True})
+
     def test_unknown_topic_suggests(self) -> None:
         from d365fo_agent.guidance import get_guidance, load_guidance
 
@@ -174,6 +185,24 @@ class GuidanceTests(unittest.TestCase):
         finally:
             index.close()
         self.assertEqual(report, {}, f"ungrounded references in shipped guidance: {report}")
+
+    def test_bundled_ax2012_topics_grounded_against_ax_index(self) -> None:
+        # Anti-hallucination for AX 2012 topics, against the AX 2012 .xpo index. Skip-guarded.
+        ax_db = Path(__file__).resolve().parents[1] / ".omx" / "index" / "ax2012.db"
+        if not ax_db.exists():
+            self.skipTest("AX 2012 index .omx/index/ax2012.db not present")
+        from d365fo_agent.guidance import default_guidance_dir, grounding_report, load_guidance
+        from d365fo_agent.index_store import D365Index
+
+        topics = {tid: t for tid, t in load_guidance(default_guidance_dir()).items()
+                  if t.platform == "ax2012"}
+        self.assertTrue(topics, "expected at least one shipped ax2012 topic")
+        index = D365Index(ax_db)
+        try:
+            report = grounding_report(topics, index)
+        finally:
+            index.close()
+        self.assertEqual(report, {}, f"ungrounded AX 2012 references: {report}")
 
 
 class GuidanceMcpToolTests(unittest.TestCase):

@@ -139,12 +139,14 @@ def get_guidance(
     topic_id: str,
     *,
     index: Any = None,
+    ax_index: Any = None,
     roots: list[Path] | None = None,
 ) -> dict[str, Any]:
     """Full topic: sections (syntax/rules/logic), grounding status, a real corpus example.
 
-    Without an index the prose is still returned (degraded mode) — grounding is listed but not
-    verified (``in_index`` is None) and no example is pulled.
+    Platform-routed: an ``ax2012`` topic grounds against ``ax_index``, otherwise against the
+    D365 F&O ``index``. Without the relevant index the prose is still returned (degraded mode) —
+    grounding is listed but not verified (``in_index`` is None) and no example is pulled.
     """
     topic = topics.get(topic_id)
     if topic is None:
@@ -153,6 +155,7 @@ def get_guidance(
         return {"found": False, "topic": topic_id,
                 "error": "unknown guidance topic", "suggestions": suggestions}
 
+    index = ax_index if topic.platform == "ax2012" else index
     grounding = [
         {"name": name,
          "in_index": (None if index is None
