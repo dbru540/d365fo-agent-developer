@@ -101,8 +101,14 @@ def find_unverified_claims(markdown: str) -> list[dict]:
         # 1. Explicit judgment tags.
         for _ in _RE_JUDGMENT.finditer(line):
             issues.append({"kind": "judgment", "line": lineno, "text": stripped[:120]})
-        # 2. Bare table heuristic — only if the line has no ✅ tag.
-        if not _RE_VERIFIED.search(line) and _RE_BARE_TABLE.search(line):
+        # 2. Bare table heuristic — only if the line has no ✅ tag and is not a
+        #    Markdown table row (lines starting with "|" are registry/appendix rows,
+        #    not factual prose claims).
+        if (
+            not _RE_VERIFIED.search(line)
+            and not stripped.startswith("|")
+            and _RE_BARE_TABLE.search(line)
+        ):
             issues.append({"kind": "heuristic", "line": lineno, "text": stripped[:120]})
     return issues
 

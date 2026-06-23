@@ -222,3 +222,117 @@ def test_validate_fdd_counts_tags_correctly():
     report = validate_fdd(md, required_sections=[])
     assert report["verified_count"] == 2
     assert report["judgment_count"] == 3
+
+
+# ---------------------------------------------------------------------------
+# Acceptance example — synthetic mini-FDD round-trip
+# ---------------------------------------------------------------------------
+
+_ACCEPTANCE_FDD = """\
+## Contexte et objectif
+
+Le module Accounts Payable (AP) gère les factures fournisseurs. ✅ [VÉRIFIÉ: explore_functional_unit]
+
+## Périmètre
+
+In: rapprochement factures/paiements. Out: comptabilisation des écarts.
+
+## Processus métier
+
+Les approbations sont souvent configurées en 3 niveaux de validation. 🔶 [JUGEMENT — à confirmer]
+
+## Exigences
+
+REQ-001: Le système doit rapprocher automatiquement les factures et les paiements.
+
+## Fit-Gap
+
+| REQ | Standard | Source | Écart |
+|---|---|---|---|
+| REQ-001 | Fit ✅ [VÉRIFIÉ: element_exists/VendSettlement] | VendSettlement | — |
+
+## Conception fonctionnelle
+
+La table VendTable contient les données maîtres fournisseurs. ✅ [VÉRIFIÉ: get_sql_model/VendTable]
+
+## Objets AOT impactés
+
+VendTable, VendTrans. ✅ [VÉRIFIÉ: find_relations/VendTable]
+
+## Modèle de données
+
+Colonnes: AccountNum, Name, Currency. ✅ [VÉRIFIÉ: get_sql_model/VendTable]
+
+## Sécurité
+
+Rôle AP Clerk. ✅ [VÉRIFIÉ: get_security_links/AP]
+
+## Intégrations et OData
+
+Entité VendorV2. ✅ [VÉRIFIÉ: get_entity_exposure/VendorV2]
+
+## États et reports
+
+Aucun état standard impacté. 🔶 [JUGEMENT — à confirmer]
+
+## Hypothèses et risques
+
+H-01: Le paramétrage des groupes de rapprochement est déjà en place. 🔶 [JUGEMENT — à confirmer]
+
+## Annexe : registre de grounding
+
+| Ligne | Source | Extrait |
+|---|---|---|
+| 3 | explore_functional_unit | Le module AP gère les factures fournisseurs. |
+| 11 | element_exists/VendSettlement | REQ-001 Fit |
+| 15 | get_sql_model/VendTable | La table VendTable contient… |
+| 17 | find_relations/VendTable | VendTable, VendTrans |
+| 19 | get_sql_model/VendTable | Colonnes: AccountNum… |
+| 21 | get_security_links/AP | Rôle AP Clerk |
+| 23 | get_entity_exposure/VendorV2 | Entité VendorV2 |
+"""
+
+
+def test_acceptance_parse_grounding_tags():
+    """7 ✅ verified + 3 🔶 judgment tags in the acceptance FDD."""
+    claims = parse_grounding_tags(_ACCEPTANCE_FDD)
+    verified = [c for c in claims if c.kind == "verified"]
+    judgments = [c for c in claims if c.kind == "judgment"]
+    assert len(verified) == 7, f"Expected 7 verified, got {len(verified)}"
+    assert len(judgments) == 3, f"Expected 3 judgments, got {len(judgments)}"
+
+
+def test_acceptance_build_grounding_registry():
+    """Registry contains exactly the 7 verified claims with correct sources."""
+    claims = parse_grounding_tags(_ACCEPTANCE_FDD)
+    registry = build_grounding_registry(claims)
+    assert len(registry) == 7
+    sources = {r["source"] for r in registry}
+    assert "explore_functional_unit" in sources
+    assert "element_exists/VendSettlement" in sources
+    assert "get_sql_model/VendTable" in sources
+    assert "find_relations/VendTable" in sources
+    assert "get_security_links/AP" in sources
+    assert "get_entity_exposure/VendorV2" in sources
+
+
+def test_acceptance_find_unverified_claims():
+    """3 explicit 🔶 judgment tags and 0 untagged table heuristic hits (all tables carry ✅)."""
+    issues = find_unverified_claims(_ACCEPTANCE_FDD)
+    judgment_issues = [i for i in issues if i["kind"] == "judgment"]
+    assert len(judgment_issues) == 3
+    # The VendTable bare-table sentences all carry ✅, so no heuristic hits for them.
+    heuristic_hits = [i for i in issues if i["kind"] == "heuristic"]
+    assert len(heuristic_hits) == 0, (
+        f"Unexpected heuristic hits: {heuristic_hits}"
+    )
+
+
+def test_acceptance_validate_fdd():
+    """Complete acceptance FDD passes validate_fdd with ok=True."""
+    report = validate_fdd(_ACCEPTANCE_FDD)
+    assert report["ok"] is True, f"validate_fdd failed: {report}"
+    assert report["missing_sections"] == []
+    assert report["has_grounding_appendix"] is True
+    assert report["verified_count"] == 7
+    assert report["judgment_count"] == 3
