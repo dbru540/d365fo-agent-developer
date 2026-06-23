@@ -235,8 +235,37 @@ def main(argv: list[str] | None = None) -> int:
                 )
             if args.internal:
                 added += di.add_chunks(ingest_internal_dir(Path(args.internal), platform=args.platform))
-            _dump_json({"db": str(db_path).replace("\\", "/"), "chunks_added": added, **di.stats()})
+            result = {"db": str(db_path).replace("\\", "/"), "chunks_added": added, **di.stats()}
+            if args.embed:
+                from d365fo_agent.embed import EMBED_AVAILABLE
+                if not EMBED_AVAILABLE:
+                    import sys as _sys
+                    print(
+                        "WARNING: --embed requested but [semantic] extra is not installed. "
+                        "Skipping vectors. Install with: pip install d365fo-agent-developer[semantic]",
+                        file=_sys.stderr,
+                    )
+                else:
+                    from d365fo_agent.embed import get_embedder
+                    embedder = get_embedder()
+                    n_vec = di.add_vectors(
+                        embedder, model_name="intfloat/multilingual-e5-small", dim=384
+                    )
+                    result["vectors_added"] = n_vec
+                    result.update(di.stats())
+            _dump_json(result)
         return 0
+
+    if args.command == "fetch-doc-vectors":
+        from d365fo_agent.doc_vectors import fetch_doc_vectors
+
+        result = fetch_doc_vectors(
+            url=args.url,
+            dest_db=Path(args.db),
+            force=args.force,
+        )
+        _dump_json(result)
+        return 0 if result.get("ok") else 1
 
     if args.command == "extract-aot-relations":
         from d365fo_agent.aot_relations import extract_aot_relations
@@ -580,6 +609,38 @@ def _build_parser() -> argparse.ArgumentParser:
     build_doc.add_argument("--internal", help="Folder of internal .docx specs (recursive).")
     build_doc.add_argument("--platform", default="d365fo", help="Platform tag for ingested docs: d365fo | ax2012 | both.")
     build_doc.add_argument("--rebuild", action="store_true", help="Delete and rebuild the DB from scratch.")
+    build_doc.add_argument(
+        "--embed",
+        action="store_true",
+        help=(
+            "After ingest, embed all chunks and store vectors in chunk_vectors. "
+            "Requires the [semantic] extra: pip install d365fo-agent-developer[semantic]. "
+            "Degrades gracefully if the extra is absent."
+        ),
+    )
+
+    fetch_doc_vectors_cmd = subparsers.add_parser(
+        "fetch-doc-vectors",
+        help=(
+            "Download a prebuilt doc vector asset (.db or .db.gz) and merge "
+            "chunk_vectors rows into an existing docs.db."
+        ),
+    )
+    fetch_doc_vectors_cmd.add_argument(
+        "--db", required=True,
+        help="Path to the existing docs.db to merge vectors into.",
+    )
+    fetch_doc_vectors_cmd.add_argument(
+        "--url",
+        help=(
+            "URL to the prebuilt vector asset (.db or .db.gz). "
+            "Required (no default until an asset is published)."
+        ),
+    )
+    fetch_doc_vectors_cmd.add_argument(
+        "--force", action="store_true",
+        help="Re-download and re-merge even if vectors are already present.",
+    )
 
     extract_aot = subparsers.add_parser(
         "extract-aot-relations",
