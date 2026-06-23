@@ -218,6 +218,26 @@ def main(argv: list[str] | None = None) -> int:
             _dump_json({"platform": "ax2012", "xpo_roots": args.root, **index.stats()})
         return 0
 
+    if args.command == "build-doc-index":
+        from d365fo_agent.doc_ingest import ingest_internal_dir, ingest_mslearn_dir
+        from d365fo_agent.doc_store import DocIndex
+
+        if not args.internal and not args.mslearn:
+            parser.error("build-doc-index needs --internal (.docx folder) and/or --mslearn (markdown clone).")
+        db_path = Path(args.db)
+        if args.rebuild and db_path.exists():
+            db_path.unlink()
+        with DocIndex(db_path) as di:
+            added = 0
+            if args.mslearn:
+                added += di.add_chunks(
+                    ingest_mslearn_dir(Path(args.mslearn), base_url=args.mslearn_base_url, platform=args.platform)
+                )
+            if args.internal:
+                added += di.add_chunks(ingest_internal_dir(Path(args.internal), platform=args.platform))
+            _dump_json({"db": str(db_path).replace("\\", "/"), "chunks_added": added, **di.stats()})
+        return 0
+
     if args.command == "extract-aot-relations":
         from d365fo_agent.aot_relations import extract_aot_relations
 
@@ -548,6 +568,17 @@ def _build_parser() -> argparse.ArgumentParser:
     build_ax.add_argument("--root", action="append", required=True,
                           help="Folder (or .xpo file) to scan for AX 2012 exports (repeatable).")
     build_ax.add_argument("--rebuild", action="store_true", help="Delete and rebuild from scratch.")
+
+    build_doc = subparsers.add_parser(
+        "build-doc-index",
+        help="Build the documentation index (FTS5) from MS Learn markdown and/or internal .docx.",
+    )
+    build_doc.add_argument("--db", required=True, help="Output docs SQLite DB, e.g. .omx/index/docs.db")
+    build_doc.add_argument("--mslearn", help="Local clone dir of MS Learn D365 F&O markdown.")
+    build_doc.add_argument("--mslearn-base-url", help="Base URL for citations, e.g. https://learn.microsoft.com/en-us/dynamics365/finance")
+    build_doc.add_argument("--internal", help="Folder of internal .docx specs (recursive).")
+    build_doc.add_argument("--platform", default="d365fo", help="Platform tag for ingested docs: d365fo | ax2012 | both.")
+    build_doc.add_argument("--rebuild", action="store_true", help="Delete and rebuild the DB from scratch.")
 
     extract_aot = subparsers.add_parser(
         "extract-aot-relations",
