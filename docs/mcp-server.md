@@ -34,6 +34,9 @@ gives the agent the tools to **check facts at generation time**:
 | Does it actually COMPILE? (real xppc.exe) | `compile_model` (Windows host) |
 | What are the rules? | `get_methodology` |
 | What does the corpus cover? | `index_stats` |
+| Search functional docs (MS Learn + internal .docx) | `search_docs` |
+| Retrieve a specific doc chunk by ID | `get_docs` |
+| Doc index coverage summary | `docs_stats` |
 
 **Every AOT object type is covered.** The index walks *all* `Ax*` element folders (not a curated
 whitelist), so it grounds the agent on the full AOT — ~70+ object types, ~233k elements — including
@@ -180,6 +183,20 @@ Any host that speaks MCP stdio uses the same command. The generic shape:
 The console entry point `d365fo-agent-developer` (alias `d365fo-mcp`, declared in `pyproject.toml`) is equivalent to
 `python -m d365fo_agent.mcp_server` and reads the same flags or the env vars
 `D365FO_REPO_ROOT`, `D365FO_RULES`, `D365FO_DB`, `D365FO_PACKAGES_ROOT`, `D365FO_METHODOLOGY`.
+
+### Documentation grounding (`search_docs`, `get_docs`, `docs_stats`)
+
+Pass `--doc-db <path>` (or set `D365FO_DOC_DB`) to enable the three documentation tools. Build the
+index first with `d365fo-agent build-doc-index` (see README), then add the flag to `serve-mcp`:
+
+```powershell
+python -m d365fo_agent.cli serve-mcp --db .omx/index/d365fo.db --doc-db .omx/index/docs.db
+```
+
+`search_docs` runs an FTS5 keyword search over indexed MS Learn markdown and internal `.docx`
+chunks, returning ranked results with source URL/path citations. `get_docs` fetches a single chunk
+by ID (useful for expanding a search hit). `docs_stats` reports chunk counts and source breakdown.
+Phase 1 is FTS5-only; semantic/embedding search is a later optional extra.
 
 ## The verify-driven workflow the agent should follow
 

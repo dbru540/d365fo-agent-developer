@@ -123,6 +123,30 @@ corpus exported as `.xpo` with `d365fo-agent build-ax-index --db ax2012.db --roo
 serve with `--ax-db ax2012.db` (env `D365FO_AX_DB`). `platform: ax2012` guidance topics then ground
 and pull examples from that index; `d365fo` topics keep using the D365 F&O knowledge base.
 
+**Functional documentation grounding (Phase 1).** Ground FUNCTIONAL claims (not just AOT metadata)
+in cited docs — MS Learn markdown + internal `.docx` — via FTS5 full-text search. Build the index
+once, then add `--doc-db` to the server command.
+
+```bash
+# Build: index MS Learn clone and/or internal .docx folder
+d365fo-agent build-doc-index \
+  --db .omx/index/docs.db \
+  --mslearn <path-to-mslearn-clone> \
+  --mslearn-base-url https://learn.microsoft.com/en-us/dynamics365/finance \
+  --internal <path-to-internal-docx-folder> \
+  --rebuild
+```
+
+```bash
+# Serve: add --doc-db (or set D365FO_DOC_DB env var)
+d365fo-agent-developer --db .omx/index/d365fo.db --doc-db .omx/index/docs.db
+```
+
+Tools enabled: `search_docs` (FTS5 keyword search returning cited chunks), `get_docs` (retrieve a
+specific chunk by ID), `docs_stats` (index coverage summary). Phase 1 is FTS5-only; semantic/
+embedding search is a later optional extra. MS Learn text is indexed locally from a public
+[MicrosoftDocs](https://github.com/MicrosoftDocs) clone; nothing is redistributed.
+
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.
 

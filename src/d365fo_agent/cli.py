@@ -268,6 +268,7 @@ def main(argv: list[str] | None = None) -> int:
             extra_roots=args.extra_root,
             sql_model_path=args.sql_model,
             ax_db_path=args.ax_db,
+            doc_db_path=args.doc_db,
         )
         server.serve_stdio()
         return 0
@@ -608,6 +609,7 @@ def _build_parser() -> argparse.ArgumentParser:
              "defaults to a sqlmodel-raw.db next to the knowledge index).",
     )
     serve_mcp.add_argument("--methodology")
+    serve_mcp.add_argument("--doc-db", help="Documentation index (from build-doc-index) — enables search_docs/get_docs.")
 
     fetch_knowledge_cmd = subparsers.add_parser(
         "fetch-knowledge", help="Download the prebuilt standard-D365 knowledge index to the local cache."
