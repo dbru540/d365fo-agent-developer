@@ -1,12 +1,13 @@
-import io
 import zipfile
 from pathlib import Path
 
 from d365fo_agent.doc_ingest import (
     Chunk,
-    extract_docx_paragraphs,
-    markdown_paragraphs,
     chunk_paragraphs,
+    extract_docx_paragraphs,
+    ingest_internal_dir,
+    ingest_mslearn_dir,
+    markdown_paragraphs,
 )
 
 WORD_XML = """<?xml version="1.0" encoding="UTF-8"?>
@@ -65,3 +66,25 @@ def test_chunk_paragraphs_splits_on_max_chars():
     )
     assert len(chunks) == 2
     assert chunks[0].ord == 0 and chunks[1].ord == 1
+
+
+def test_ingest_internal_dir_walks_docx(tmp_path):
+    _make_docx(tmp_path / "vendor.docx")
+    chunks = list(ingest_internal_dir(tmp_path, platform="d365fo"))
+    assert chunks, "expected at least one chunk from the .docx"
+    assert all(c.origin == "internal" for c in chunks)
+    assert all(str(tmp_path) in c.source_ref or "vendor.docx" in c.source_ref for c in chunks)
+    assert any("bancaire" in c.text for c in chunks)
+
+
+def test_ingest_mslearn_dir_builds_citation_url(tmp_path):
+    (tmp_path / "finance").mkdir()
+    (tmp_path / "finance" / "settle.md").write_text(
+        "# Settlement\n\nHow settlement works.\n", encoding="utf-8"
+    )
+    chunks = list(ingest_mslearn_dir(tmp_path, base_url="https://learn.microsoft.com/x"))
+    assert chunks
+    c = chunks[0]
+    assert c.origin == "mslearn"
+    assert c.source_ref == "https://learn.microsoft.com/x/finance/settle"
+    assert c.module == "finance"

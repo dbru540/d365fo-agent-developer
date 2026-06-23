@@ -14,6 +14,7 @@ import re
 import zipfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Iterator
 from xml.etree import ElementTree
 
 WORD_NS = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -118,3 +119,52 @@ def chunk_paragraphs(
             buf.append(text)
     flush()
     return chunks
+
+
+def ingest_docx_file(
+    path: str | Path, *, origin: str = "internal", platform: str = "d365fo", module: str = "",
+) -> list[Chunk]:
+    path = Path(path)
+    paras = extract_docx_paragraphs(path)
+    return chunk_paragraphs(
+        paras, doc_id=path.stem, origin=origin, platform=platform,
+        module=module, source_ref=str(path),
+    )
+
+
+def ingest_markdown_file(
+    path: str | Path, *, source_ref: str, origin: str = "mslearn", platform: str = "d365fo",
+    module: str = "", doc_id: str | None = None,
+) -> list[Chunk]:
+    path = Path(path)
+    paras = markdown_paragraphs(path.read_text(encoding="utf-8", errors="ignore"))
+    return chunk_paragraphs(
+        paras, doc_id=doc_id or path.stem, origin=origin, platform=platform,
+        module=module, source_ref=source_ref,
+    )
+
+
+def ingest_internal_dir(directory: str | Path, *, platform: str = "d365fo") -> Iterator[Chunk]:
+    """Every ``*.docx`` under ``directory`` (recursive). Module = the file's parent folder name."""
+    directory = Path(directory)
+    for path in sorted(directory.rglob("*.docx")):
+        if path.name.startswith("~$"):  # Word lock files
+            continue
+        module = path.parent.name if path.parent != directory else ""
+        yield from ingest_docx_file(path, platform=platform, module=module)
+
+
+def ingest_mslearn_dir(
+    directory: str | Path, *, base_url: str | None = None, platform: str = "d365fo",
+) -> Iterator[Chunk]:
+    """Every ``*.md`` under ``directory`` (recursive). The citation is ``base_url`` + the
+    posix relative path without the ``.md`` suffix; module = the top relative folder."""
+    directory = Path(directory)
+    for path in sorted(directory.rglob("*.md")):
+        rel = path.relative_to(directory).as_posix()
+        slug = rel[:-3] if rel.endswith(".md") else rel
+        source_ref = f"{base_url.rstrip('/')}/{slug}" if base_url else str(path)
+        module = path.relative_to(directory).parts[0] if len(path.relative_to(directory).parts) > 1 else ""
+        yield from ingest_markdown_file(
+            path, source_ref=source_ref, platform=platform, module=module, doc_id=slug,
+        )
