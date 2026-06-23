@@ -21,5 +21,7 @@ def test_add_get_stats_roundtrip(tmp_path):
         assert stats["by_origin"] == {"mslearn": 1, "internal": 1}
         assert stats["has_vectors"] is False
         first = di.get(1)
-        assert first["text"].startswith("T") and first["source_ref"] == "https://learn/x"
+        assert first["title"] == "T"
+        assert first["text"] == "settlement matches invoices and payments"
+        assert first["source_ref"] == "https://learn/x"
         assert di.get(999) is None

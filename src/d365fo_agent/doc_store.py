@@ -69,16 +69,15 @@ class DocIndex:
     def add_chunks(self, chunks: Iterable[Chunk]) -> int:
         n = 0
         for ch in chunks:
-            # Store "title line + body" so the text column is self-contained for FTS and citation.
-            # Matches the Chunk docstring: text = "indexed text (title line + body)".
-            indexed_text = f"{ch.title}\n{ch.text}" if ch.title else ch.text
+            # ch.text is already the canonical "title line + body" (see doc_ingest.chunk_paragraphs);
+            # persist it verbatim. Re-prepending the title would duplicate it.
             cur = self.conn.execute(
                 "INSERT INTO chunks(doc_id, origin, platform, module, title, source_ref, ord, text) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                (ch.doc_id, ch.origin, ch.platform, ch.module, ch.title, ch.source_ref, ch.ord, indexed_text),
+                (ch.doc_id, ch.origin, ch.platform, ch.module, ch.title, ch.source_ref, ch.ord, ch.text),
             )
             self.conn.execute("INSERT INTO chunks_fts(rowid, text) VALUES (?, ?)",
-                              (cur.lastrowid, indexed_text))
+                              (cur.lastrowid, ch.text))
             n += 1
         self.conn.commit()
         return n
