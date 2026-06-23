@@ -126,3 +126,99 @@ def test_find_unverified_empty_on_clean_doc():
     clean = "Voici un commentaire général sans affirmation factuelle.\n"
     issues = find_unverified_claims(clean)
     assert issues == []
+
+
+from d365fo_agent.spec_grounding import validate_fdd
+
+
+# ---------------------------------------------------------------------------
+# validate_fdd
+# ---------------------------------------------------------------------------
+
+_MINIMAL_FDD = """
+## Contexte et objectif
+Description du projet. ✅ [VÉRIFIÉ: explore_functional_unit]
+
+## Périmètre
+In: rapprochement. Out: paiements.
+
+## Processus métier
+As-is / to-be. 🔶 [JUGEMENT — à confirmer]
+
+## Exigences
+REQ-001: …
+
+## Fit-Gap
+Analyse. ✅ [VÉRIFIÉ: element_exists/VendSettlement]
+
+## Conception fonctionnelle
+Description.
+
+## Objets AOT impactés
+VendTable. ✅ [VÉRIFIÉ: find_relations/VendTable]
+
+## Modèle de données
+Schéma. ✅ [VÉRIFIÉ: get_sql_model/VendTable]
+
+## Sécurité
+Rôles. ✅ [VÉRIFIÉ: get_security_links/AP]
+
+## Intégrations et OData
+Aucune.
+
+## États et reports
+Aucun.
+
+## Hypothèses et risques
+À confirmer.
+
+## Annexe : registre de grounding
+| Ligne | Source | Snippet |
+|---|---|---|
+| 3 | explore_functional_unit | Description du projet. |
+"""
+
+
+def test_validate_fdd_ok_on_complete_doc():
+    report = validate_fdd(_MINIMAL_FDD)
+    assert report["ok"] is True
+    assert report["missing_sections"] == []
+    assert report["has_grounding_appendix"] is True
+    assert report["verified_count"] >= 5
+    assert report["judgment_count"] == 1
+
+
+def test_validate_fdd_detects_missing_sections():
+    no_security = _MINIMAL_FDD.replace("## Sécurité\nRôles. ✅ [VÉRIFIÉ: get_security_links/AP]\n", "")
+    report = validate_fdd(no_security)
+    assert report["ok"] is False
+    assert any("sécurité" in s.lower() for s in report["missing_sections"])
+
+
+def test_validate_fdd_detects_missing_appendix():
+    no_appendix = _MINIMAL_FDD.replace("## Annexe : registre de grounding", "## Annexe : divers")
+    report = validate_fdd(no_appendix)
+    assert report["ok"] is False
+    assert report["has_grounding_appendix"] is False
+
+
+def test_validate_fdd_custom_required_sections():
+    report = validate_fdd("## Contexte et objectif\n\nTexte.\n",
+                          required_sections=["contexte"])
+    # Missing appendix so ok=False, but missing_sections is empty.
+    assert report["missing_sections"] == []
+    assert report["has_grounding_appendix"] is False
+
+
+def test_validate_fdd_counts_tags_correctly():
+    md = (
+        "✅ [VÉRIFIÉ: t1]\n"
+        "✅ [VÉRIFIÉ: t2]\n"
+        "🔶 [JUGEMENT — à confirmer]\n"
+        "🔶 [JUGEMENT — à confirmer]\n"
+        "🔶 [JUGEMENT — à confirmer]\n"
+        "## Annexe : registre de grounding\n"
+    )
+    report = validate_fdd(md, required_sections=[])
+    assert report["verified_count"] == 2
+    assert report["judgment_count"] == 3
