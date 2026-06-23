@@ -110,3 +110,60 @@ def test_add_vectors_is_idempotent(tmp_path):
     count = di.conn.execute("SELECT COUNT(*) FROM chunk_vectors").fetchone()[0]
     assert count == 3  # still exactly 3, not 6
     di.close()
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — hybrid semantic search tests
+# ---------------------------------------------------------------------------
+
+def test_search_semantic_reranks_candidates(tmp_path):
+    """Hybrid search must reorder results by cosine similarity, not BM25.
+
+    FakeEmbedder maps:
+      "settlement" -> [1, 0, 0]
+      "reconciliation" -> [0, 1, 0]
+      "journal" -> [0, 0, 1]
+    The query "reconciliation" maps to [0, 1, 0].
+    After FTS5 top-N we rerank by cosine: the reconciliation chunk must rank first,
+    even if BM25 would rank it second.
+    """
+    di = DocIndex(tmp_path / "docs.db")
+    # Add chunks in an order where FTS5 might rank "settlement" higher on a multi-keyword query.
+    di.add_chunks([
+        _chunk("settlement reconciliation vendor payments", ord=0, module="ap"),  # id=1 - contains both
+        _chunk("bank reconciliation statement monthly", ord=1, module="gl"),       # id=2 - pure reconciliation
+        _chunk("general ledger journal posting entries", ord=2, module="gl"),      # id=3 - unrelated
+    ])
+    embedder = FakeEmbedder()
+    di.add_vectors(embedder, model_name="fake/dim3", dim=3)
+
+    # Semantic query for "reconciliation" -> vector [0,1,0]
+    results = di.search("reconciliation", semantic=True, embedder=embedder,
+                        model_name="fake/dim3")
+    assert results, "expected at least one result"
+    # The pure reconciliation chunk (id=2) should rank above the mixed one (id=1).
+    ids = [r["id"] for r in results]
+    assert ids.index(2) < ids.index(1), (
+        f"Expected id=2 before id=1 in semantic rerank; got order {ids}"
+    )
+    di.close()
+
+
+def test_search_semantic_degrades_without_vectors(tmp_path):
+    """When no vectors are present, semantic=True falls back to FTS5 silently."""
+    di = DocIndex(tmp_path / "docs.db")
+    di.add_chunks([_chunk("settlement reconciliation", ord=0)])
+    # No add_vectors call - has_vectors is False.
+    results = di.search("settlement", semantic=True, embedder=FakeEmbedder(),
+                        model_name="fake/dim3")
+    assert results  # FTS5 fallback still returns results
+    di.close()
+
+
+def test_search_semantic_false_unchanged(tmp_path):
+    """semantic=False (default) must produce the same results as before this task."""
+    di = DocIndex(tmp_path / "docs.db")
+    di.add_chunks([_chunk("settlement matches vendor invoices", ord=0)])
+    results = di.search("settlement")
+    assert results[0]["id"] == 1
+    di.close()

@@ -110,20 +110,45 @@ class DocIndex:
         row = self.conn.execute("SELECT * FROM chunks WHERE id = ?", (chunk_id,)).fetchone()
         return dict(row) if row else None
 
-    def search(self, query: str, *, platform: str | None = None, module: str | None = None,
-               origin: str | None = None, limit: int = 10) -> list[dict]:
-        """FTS5 BM25 search over chunk text, with optional filters. Each hit carries its source
-        citation and a snippet. Empty/punctuation-only queries return [].
+    def search(
+        self,
+        query: str,
+        *,
+        platform: str | None = None,
+        module: str | None = None,
+        origin: str | None = None,
+        limit: int = 10,
+        semantic: bool = False,
+        embedder: object | None = None,
+        model_name: str = "intfloat/multilingual-e5-small",
+        semantic_candidates: int = 40,
+    ) -> list[dict]:
+        """Search chunks by BM25 (default) or hybrid BM25→cosine-rerank (``semantic=True``).
 
-        Terms shorter than 2 characters are dropped (FTS5 noise-word filter); a query of only
-        such terms (e.g. ``"GL"`` alone) returns []. Use longer synonyms or combine terms.
+        FTS5-only path:
+          ``semantic=False`` (default), or ``semantic=True`` but no vectors are present, or
+          no ``embedder`` is supplied → identical to the Phase 1 behaviour.
+
+        Hybrid path (``semantic=True`` + vectors present + embedder supplied):
+          1. Run FTS5 to get up to ``semantic_candidates`` candidates.
+          2. Embed the query with ``"query: "`` prefix.
+          3. Load the stored vector for each candidate from ``chunk_vectors``.
+          4. Rerank by cosine similarity (descending).
+          5. Return the top ``limit`` hits.
+
+        Chunks that lack a vector for ``model_name`` in ``chunk_vectors`` are excluded
+        from the reranked results (they were never embedded for that model).
+
+        Empty/punctuation-only queries return [].
+        Terms shorter than 2 characters are dropped (FTS5 noise-word filter).
         """
         terms = [t for t in re.findall(r"\w+", query.lower()) if len(t) > 1]
         if not terms:
             return []
-        match = " ".join(f'"{t}"' for t in terms)
+
+        match_expr = " ".join(f'"{t}"' for t in terms)
         where = ["chunks_fts MATCH ?"]
-        params: list[object] = [match]
+        params: list[object] = [match_expr]
         if platform:
             where.append("(c.platform = ? OR c.platform = 'both')")
             params.append(platform)
@@ -133,14 +158,54 @@ class DocIndex:
         if origin:
             where.append("c.origin = ?")
             params.append(origin)
-        params.append(int(limit))
+
+        candidate_limit = semantic_candidates if semantic else limit
+        params.append(int(candidate_limit))
+
         sql = (
             "SELECT c.id, c.doc_id, c.origin, c.platform, c.module, c.title, c.source_ref, c.ord, "
             "snippet(chunks_fts, 0, '[', ']', ' … ', 16) AS snippet, bm25(chunks_fts) AS rank "
             "FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.rowid "
-            f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"  # bm25() returns negatives; ASC = best match first
+            f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"
         )
-        return [dict(row) for row in self.conn.execute(sql, params)]
+        candidates = [dict(row) for row in self.conn.execute(sql, params)]
+
+        # --- Hybrid rerank (optional) --------------------------------------------
+        if not (semantic and embedder and candidates):
+            return candidates[:limit]
+
+        # Check whether chunk_vectors has rows for this model.
+        has_vectors = (
+            self.conn.execute(
+                "SELECT COUNT(*) FROM chunk_vectors WHERE model = ?", (model_name,)
+            ).fetchone()[0]
+            > 0
+        )
+        if not has_vectors:
+            return candidates[:limit]  # degrade gracefully
+
+        # Embed the query (FakeEmbedder yields a list; real fastembed yields a float32 array —
+        # both iterable — convert to plain floats either way).
+        try:
+            q_floats = [float(x) for x in list(embedder.embed([f"query: {query}"]))[0]]
+        except Exception:
+            return candidates[:limit]
+        if not any(q_floats):
+            return candidates[:limit]
+
+        scored: list[tuple[float, dict]] = []
+        for row in candidates:
+            vec_row = self.conn.execute(
+                "SELECT vector FROM chunk_vectors WHERE chunk_id = ? AND model = ?",
+                (row["id"], model_name),
+            ).fetchone()
+            if vec_row is None:
+                continue
+            sim = _cosine_floats(q_floats, _blob_to_floats(vec_row[0]))
+            scored.append((sim, row))
+
+        scored.sort(key=lambda x: x[0], reverse=True)
+        return [row for _, row in scored[:limit]]
 
     def add_vectors(
         self,
