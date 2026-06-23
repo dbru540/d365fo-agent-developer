@@ -178,6 +178,44 @@ d365fo-agent fetch-doc-vectors \
 **Without the extra**, the server automatically falls back to FTS5 full-text search — no
 configuration change needed.
 
+### Functional Design Documents (Feature 2)
+
+The `skills/functional-spec/` skill lets an agent autonomously produce a
+**grounded Functional Design Document** for any D365 F&O topic.
+
+Every factual claim is verified against the AOT index or the documentation
+index before it is written:
+
+- ✅ `[VÉRIFIÉ: <tool>]` — verified via MCP tool or doc chunk
+- 🔶 `[JUGEMENT — à confirmer]` — functional reasoning; flagged for review
+
+**Usage:**
+
+```
+/functional-spec  <topic>
+```
+
+or, from Claude Code with the skill loaded:
+
+```
+functional-spec: produce an FDD for the Accounts Payable invoice matching process
+```
+
+**Orchestration order** (all tools are existing MCP tools):
+`explore_functional_unit` → impacted objects → fit-gap / `search_docs` →
+`get_security_links` → `get_sql_model` → `get_guidance` → FDD template →
+optional `.docx` export.
+
+**Anti-hallucination check** (Python, no extra deps):
+
+```python
+from d365fo_agent.spec_grounding import validate_fdd
+report = validate_fdd(open("my-fdd.md").read())
+print(report)  # {"ok": True/False, "missing_sections": [...], ...}
+```
+
+FDD template: `skills/functional-spec/templates/fdd-template.md`
+
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.
 

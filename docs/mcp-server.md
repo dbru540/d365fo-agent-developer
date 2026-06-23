@@ -311,3 +311,28 @@ $env:PYTHONPATH='src'
 ```
 
 A JSON-RPC `initialize` result on stdout means the server is live.
+
+## Functional Design Document skill
+
+The `skills/functional-spec/SKILL.md` is an agent-facing instruction file that
+orchestrates the **existing** 27 MCP tools in a prescribed order to produce a
+grounded FDD. No new MCP tools are added by Feature 2.
+
+### Anti-hallucination helpers (`spec_grounding.py`)
+
+```python
+from d365fo_agent.spec_grounding import (
+    parse_grounding_tags,      # find ✅/🔶 claims in a Markdown FDD
+    build_grounding_registry,  # build the appendix registry from verified claims
+    find_unverified_claims,    # surface 🔶 tags + heuristic bare-fact sentences
+    validate_fdd,              # check all 13 required sections + appendix present
+)
+```
+
+All functions are stdlib-only and take a Markdown string; no server connection
+required. See `tests/test_spec_grounding.py` for usage examples.
+
+### FDD template
+
+`skills/functional-spec/templates/fdd-template.md` — the canonical 13-section
+template with tag examples and grounding-appendix stub. Copy, fill, validate.
