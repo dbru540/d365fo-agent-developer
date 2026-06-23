@@ -198,6 +198,10 @@ chunks, returning ranked results with source URL/path citations. `get_docs` fetc
 by ID (useful for expanding a search hit). `docs_stats` reports chunk counts and source breakdown.
 Phase 1 is FTS5-only; semantic/embedding search is a later optional extra.
 
+> **Auto-discovery:** if `--doc-db` is omitted and a `docs.db` file exists in the same directory
+> as the main knowledge index (`--db`), it is loaded automatically. Pass `--doc-db ""` (empty
+> string) to suppress this if unintended.
+
 ## The verify-driven workflow the agent should follow
 
 1. `get_methodology` — load the rules once.

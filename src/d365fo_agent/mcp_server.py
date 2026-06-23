@@ -889,6 +889,20 @@ class D365MCPServer:
             _log(f"tool '{name}' failed: " + "".join(traceback.format_exception(exc)))
             return {"content": [{"type": "text", "text": f"Tool '{name}' failed: {exc}"}], "isError": True}
 
+    # -- lifecycle -----------------------------------------------------------------
+
+    def close(self) -> None:
+        """Release lazily-opened database connections."""
+        if self._doc_index is not None:
+            self._doc_index.close()
+            self._doc_index = None
+        # _ax_index and _index are D365Index instances; close if they expose close().
+        for attr in ("_ax_index", "_index"):
+            idx = getattr(self, attr, None)
+            if idx is not None and hasattr(idx, "close"):
+                idx.close()
+                setattr(self, attr, None)
+
     # -- stdio loop ----------------------------------------------------------------
 
     def serve_stdio(self, stdin: Any = None, stdout: Any = None) -> None:
@@ -904,19 +918,22 @@ class D365MCPServer:
                 pass
         _log(f"serving {len(self.tools)} tools; repo={self.repo_root} db={self.db_path}")
         self._maybe_start_autofetch()
-        for line in stdin:
-            line = line.strip()
-            if not line:
-                continue
-            try:
-                message = json.loads(line)
-            except json.JSONDecodeError:
-                _log(f"skipping non-JSON line: {line[:120]}")
-                continue
-            response = self.handle(message)
-            if response is not None:
-                stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
-                stdout.flush()
+        try:
+            for line in stdin:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    message = json.loads(line)
+                except json.JSONDecodeError:
+                    _log(f"skipping non-JSON line: {line[:120]}")
+                    continue
+                response = self.handle(message)
+                if response is not None:
+                    stdout.write(json.dumps(response, ensure_ascii=False) + "\n")
+                    stdout.flush()
+        finally:
+            self.close()
 
 
 class _RpcError(Exception):

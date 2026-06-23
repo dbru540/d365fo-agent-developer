@@ -92,6 +92,12 @@ def chunk_paragraphs(
     """Group body paragraphs under the most recent heading into ``Chunk``s; split a section
     that exceeds ``max_chars``. The chunk text is the title line followed by the body."""
     if platform not in _VALID_PLATFORMS:
+        import warnings
+        warnings.warn(
+            f"Unknown platform {platform!r}; expected one of {sorted(_VALID_PLATFORMS)}. "
+            "Defaulting to 'd365fo'. Check your --platform argument.",
+            stacklevel=2,
+        )
         platform = "d365fo"
     chunks: list[Chunk] = []
     title = doc_id

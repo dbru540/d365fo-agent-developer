@@ -89,7 +89,11 @@ class DocIndex:
     def search(self, query: str, *, platform: str | None = None, module: str | None = None,
                origin: str | None = None, limit: int = 10) -> list[dict]:
         """FTS5 BM25 search over chunk text, with optional filters. Each hit carries its source
-        citation and a snippet. Empty/punctuation-only queries return []."""
+        citation and a snippet. Empty/punctuation-only queries return [].
+
+        Terms shorter than 2 characters are dropped (FTS5 noise-word filter); a query of only
+        such terms (e.g. ``"GL"`` alone) returns []. Use longer synonyms or combine terms.
+        """
         terms = [t for t in re.findall(r"\w+", query.lower()) if len(t) > 1]
         if not terms:
             return []
@@ -110,7 +114,7 @@ class DocIndex:
             "SELECT c.id, c.doc_id, c.origin, c.platform, c.module, c.title, c.source_ref, c.ord, "
             "snippet(chunks_fts, 0, '[', ']', ' … ', 16) AS snippet, bm25(chunks_fts) AS rank "
             "FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.rowid "
-            f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"
+            f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"  # bm25() returns negatives; ASC = best match first
         )
         return [dict(row) for row in self.conn.execute(sql, params)]
 
