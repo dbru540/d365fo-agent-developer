@@ -10,7 +10,7 @@ it, so no migration is needed later.
 
 from __future__ import annotations
 
-import re  # noqa: F401  # used by Task 4 search() method
+import re
 import sqlite3
 from pathlib import Path
 from typing import Iterable
@@ -85,6 +85,34 @@ class DocIndex:
     def get(self, chunk_id: int) -> dict | None:
         row = self.conn.execute("SELECT * FROM chunks WHERE id = ?", (chunk_id,)).fetchone()
         return dict(row) if row else None
+
+    def search(self, query: str, *, platform: str | None = None, module: str | None = None,
+               origin: str | None = None, limit: int = 10) -> list[dict]:
+        """FTS5 BM25 search over chunk text, with optional filters. Each hit carries its source
+        citation and a snippet. Empty/punctuation-only queries return []."""
+        terms = [t for t in re.findall(r"\w+", query.lower()) if len(t) > 1]
+        if not terms:
+            return []
+        match = " ".join(f'"{t}"' for t in terms)
+        where = ["chunks_fts MATCH ?"]
+        params: list[object] = [match]
+        if platform:
+            where.append("(c.platform = ? OR c.platform = 'both')")
+            params.append(platform)
+        if module:
+            where.append("c.module = ?")
+            params.append(module)
+        if origin:
+            where.append("c.origin = ?")
+            params.append(origin)
+        params.append(int(limit))
+        sql = (
+            "SELECT c.id, c.doc_id, c.origin, c.platform, c.module, c.title, c.source_ref, c.ord, "
+            "snippet(chunks_fts, 0, '[', ']', ' … ', 16) AS snippet, bm25(chunks_fts) AS rank "
+            "FROM chunks_fts JOIN chunks c ON c.id = chunks_fts.rowid "
+            f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"
+        )
+        return [dict(row) for row in self.conn.execute(sql, params)]
 
     def stats(self) -> dict:
         total = self.conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
