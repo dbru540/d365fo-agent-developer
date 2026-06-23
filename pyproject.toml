@@ -39,6 +39,7 @@ Issues = "https://github.com/dbru540/d365fo-agent-developer/issues"
 # `run-graphify-staging` command needs it. Everything else (indexing, generation,
 # MCP server, validation) is Python standard library only.
 graph = ["graphify"]
+semantic = ["fastembed"]
 dev = ["pytest", "ruff", "build"]
 
 [project.scripts]
