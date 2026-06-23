@@ -773,18 +773,38 @@ class D365MCPServer:
             "prose that grounds a FUNCTIONAL question — e.g. 'how does vendor invoice matching work'. "
             "Use this to ground functional behaviour BEFORE writing it from memory; every hit carries "
             "its source citation (source_ref). Complements the AOT/symbol tools (which ground "
-            "technical facts). Returns ranked chunks with a snippet, not full pages.",
+            "technical facts). Returns ranked chunks with a snippet, not full pages. "
+            "Set semantic=true (default) to use hybrid BM25→cosine rerank when the [semantic] "
+            "extra is installed and vectors are present; degrades silently to FTS5 otherwise.",
             {"type": "object", "properties": {
-                "query": STR, "platform": STR, "module": STR, "origin": STR, "limit": INT,
+                "query": STR, "platform": STR, "module": STR, "origin": STR,
+                "limit": INT, "semantic": BOOL,
             }, "required": ["query"]},
         )
         def search_docs(args: dict[str, Any]) -> dict[str, Any]:
             di = self._doc_index_if_ready()
             if di is None:
                 return {"found": False, "error": _NO_DOCS}
+            use_semantic = bool(args.get("semantic", True))
+            embedder = None
+            model_name = "intfloat/multilingual-e5-small"
+            if use_semantic:
+                try:
+                    from d365fo_agent.embed import EMBED_AVAILABLE, get_embedder
+                    if EMBED_AVAILABLE:
+                        embedder = get_embedder(model_name)
+                except Exception:
+                    pass  # degrade to FTS5 on any import/init failure
             return {"found": True, "results": di.search(
-                args["query"], platform=args.get("platform"), module=args.get("module"),
-                origin=args.get("origin"), limit=int(args.get("limit", 10)))}
+                args["query"],
+                platform=args.get("platform"),
+                module=args.get("module"),
+                origin=args.get("origin"),
+                limit=int(args.get("limit", 10)),
+                semantic=use_semantic,
+                embedder=embedder,
+                model_name=model_name,
+            )}
 
         @tool(
             "get_docs",

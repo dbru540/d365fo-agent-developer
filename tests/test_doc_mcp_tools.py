@@ -42,3 +42,35 @@ def test_doc_tools_degrade_without_index(tmp_path):
     out = _call(server, "search_docs", {"query": "anything"})
     assert out["found"] is False
     assert "build-doc-index" in out["error"]
+
+
+# ---------------------------------------------------------------------------
+# Task 6: semantic boolean arg on search_docs
+# ---------------------------------------------------------------------------
+def test_search_docs_semantic_false_always_works(tmp_path):
+    """semantic=False must produce FTS5 results regardless of vector presence."""
+    server = _server_with_docs(tmp_path)
+    out = _call(server, "search_docs", {"query": "settlement payments", "semantic": False})
+    assert out["found"] is True
+    assert out["results"]
+
+
+def test_search_docs_semantic_true_degrades_without_extra(tmp_path, monkeypatch):
+    """semantic=True must fall back to FTS5 when EMBED_AVAILABLE is False."""
+    import d365fo_agent.embed as embed_mod
+    monkeypatch.setattr(embed_mod, "EMBED_AVAILABLE", False)
+
+    server = _server_with_docs(tmp_path)
+    out = _call(server, "search_docs", {"query": "settlement payments", "semantic": True})
+    # Must still return results (FTS5 fallback), not an error.
+    assert out["found"] is True
+    assert out["results"]
+
+
+def test_search_docs_tool_schema_has_semantic_field(tmp_path):
+    """The search_docs tool schema must include a 'semantic' boolean property."""
+    server = _server_with_docs(tmp_path)
+    search_tool = server.tools["search_docs"]
+    props = search_tool["inputSchema"]["properties"]
+    assert "semantic" in props, "search_docs schema must expose 'semantic' boolean arg"
+    assert props["semantic"].get("type") == "boolean"
