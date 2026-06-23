@@ -143,9 +143,40 @@ d365fo-agent-developer --db .omx/index/d365fo.db --doc-db .omx/index/docs.db
 ```
 
 Tools enabled: `search_docs` (FTS5 keyword search returning cited chunks), `get_docs` (retrieve a
-specific chunk by ID), `docs_stats` (index coverage summary). Phase 1 is FTS5-only; semantic/
-embedding search is a later optional extra. MS Learn text is indexed locally from a public
-[MicrosoftDocs](https://github.com/MicrosoftDocs) clone; nothing is redistributed.
+specific chunk by ID), `docs_stats` (index coverage summary). MS Learn text is indexed locally from
+a public [MicrosoftDocs](https://github.com/MicrosoftDocs) clone; nothing is redistributed.
+
+#### Semantic search (optional)
+
+Install the `[semantic]` extra to enable hybrid BM25 → cosine-rerank search:
+
+```bash
+pip install d365fo-agent-developer[semantic]
+```
+
+This downloads and caches `intfloat/multilingual-e5-small` (ONNX, ~120 MB) on first use.
+The model is multilingual (French + English).
+
+**Embed your corpus after indexing:**
+
+```bash
+d365fo-agent build-doc-index \
+  --db .omx/index/docs.db \
+  --internal <docx-folder> \
+  [--mslearn <clone>] \
+  --embed          # ← computes and stores vectors
+```
+
+Or download a prebuilt vector asset (when published):
+
+```bash
+d365fo-agent fetch-doc-vectors \
+  --db .omx/index/docs.db \
+  --url https://github.com/dbru540/d365fo-agent-developer/releases/download/doc-vectors-v1/doc-vectors.db.gz
+```
+
+**Without the extra**, the server automatically falls back to FTS5 full-text search — no
+configuration change needed.
 
 See [docs/mcp-server.md](docs/mcp-server.md) for the verify-driven workflow and
 [docs/x++-methodology.md](docs/x++-methodology.md) for the behavioural contract.

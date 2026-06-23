@@ -196,7 +196,17 @@ python -m d365fo_agent.cli serve-mcp --db .omx/index/d365fo.db --doc-db .omx/ind
 `search_docs` runs an FTS5 keyword search over indexed MS Learn markdown and internal `.docx`
 chunks, returning ranked results with source URL/path citations. `get_docs` fetches a single chunk
 by ID (useful for expanding a search hit). `docs_stats` reports chunk counts and source breakdown.
-Phase 1 is FTS5-only; semantic/embedding search is a later optional extra.
+
+**`search_docs` — `semantic` argument (boolean, optional, default `true`):** when `true` and the
+`[semantic]` extra is installed and vectors are present in the index, uses hybrid BM25 →
+cosine-rerank for better multilingual recall. Degrades silently to FTS5 when the extra is absent
+or vectors are not yet computed. Set to `false` to force FTS5-only (faster, always available).
+
+The underlying model is `intfloat/multilingual-e5-small` (dim 384). Documents and queries
+are prefixed (`"passage: "` / `"query: "`) as required by the e5 model family.
+
+**Prebuilt vectors:** use `fetch-doc-vectors` to download a vector asset; or embed locally
+with `build-doc-index --embed`. Both are optional — the index ships as FTS5-first.
 
 > **Auto-discovery:** if `--doc-db` is omitted and a `docs.db` file exists in the same directory
 > as the main knowledge index (`--db`), it is loaded automatically. Pass `--doc-db ""` (empty
