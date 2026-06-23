@@ -64,9 +64,12 @@ class D365MCPServer:
         sql_model_path: Path | None = None,
         auto_fetch_url: str | None = None,
         ax_db_path: Path | None = None,
+        doc_db_path: Path | None = None,
     ) -> None:
         self.sql_model_path = sql_model_path
         self.ax_db_path = ax_db_path
+        self.doc_db_path = doc_db_path
+        self._doc_index: Any = None
         self.repo_root = repo_root
         self.rules_path = rules_path
         self.db_path = db_path
@@ -115,6 +118,17 @@ class D365MCPServer:
         if self._ax_index is None:
             self._ax_index = D365Index(self.ax_db_path)
         return self._ax_index
+
+    def _doc_index_if_ready(self) -> Any:
+        """The documentation index when configured and present, else None — so doc tools degrade
+        gracefully (like get_sql_model) instead of raising when no docs.db is wired."""
+        if not self.doc_db_path or not Path(self.doc_db_path).exists():
+            return None
+        if self._doc_index is None:
+            from d365fo_agent.doc_store import DocIndex
+
+            self._doc_index = DocIndex(self.doc_db_path)
+        return self._doc_index
 
     @property
     def index(self) -> D365Index:
@@ -750,6 +764,53 @@ class D365MCPServer:
                 return {"found": False, "error": "No SQL model configured (--sql-model / D365FO_SQL_MODEL)."}
             return relate(self.sql_model_path, args["a"], args["b"])
 
+        _NO_DOCS = ("No documentation index configured. Build one with 'd365fo-agent build-doc-index' "
+                    "and start the server with --doc-db / D365FO_DOC_DB.")
+
+        @tool(
+            "search_docs",
+            "Search the INGESTED D365 functional documentation (MS Learn + internal specs) for "
+            "prose that grounds a FUNCTIONAL question — e.g. 'how does vendor invoice matching work'. "
+            "Use this to ground functional behaviour BEFORE writing it from memory; every hit carries "
+            "its source citation (source_ref). Complements the AOT/symbol tools (which ground "
+            "technical facts). Returns ranked chunks with a snippet, not full pages.",
+            {"type": "object", "properties": {
+                "query": STR, "platform": STR, "module": STR, "origin": STR, "limit": INT,
+            }, "required": ["query"]},
+        )
+        def search_docs(args: dict[str, Any]) -> dict[str, Any]:
+            di = self._doc_index_if_ready()
+            if di is None:
+                return {"found": False, "error": _NO_DOCS}
+            return {"found": True, "results": di.search(
+                args["query"], platform=args.get("platform"), module=args.get("module"),
+                origin=args.get("origin"), limit=int(args.get("limit", 10)))}
+
+        @tool(
+            "get_docs",
+            "Return one full documentation chunk by its id (from search_docs results), with its "
+            "title, source citation and full text. Use to read the passage you intend to cite.",
+            {"type": "object", "properties": {"chunk_id": INT}, "required": ["chunk_id"]},
+        )
+        def get_docs(args: dict[str, Any]) -> dict[str, Any]:
+            di = self._doc_index_if_ready()
+            if di is None:
+                return {"found": False, "error": _NO_DOCS}
+            chunk = di.get(int(args["chunk_id"]))
+            return chunk if chunk else {"found": False, "error": f"No documentation chunk {args['chunk_id']}."}
+
+        @tool(
+            "docs_stats",
+            "Report documentation-index coverage: chunk counts by origin (mslearn/internal) and "
+            "whether semantic vectors are present. Use to see what functional docs are grounded.",
+            {"type": "object", "properties": {}},
+        )
+        def docs_stats(args: dict[str, Any]) -> dict[str, Any]:
+            di = self._doc_index_if_ready()
+            if di is None:
+                return {"found": False, "error": _NO_DOCS}
+            return di.stats()
+
     # -- resources -----------------------------------------------------------------
 
     def list_resources(self) -> list[dict[str, Any]]:
@@ -901,6 +962,7 @@ def build_server_from_config(
     sql_model_path: str | Path | None = None,
     auto_fetch_url: str | None = None,
     ax_db_path: str | Path | None = None,
+    doc_db_path: str | Path | None = None,
 ) -> D365MCPServer:
     # repo_root/rules are OPTIONAL: in "embedded knowledge base" mode the server runs from a
     # prebuilt index alone (no custom repo). They are only needed for catalog-backed tools.
@@ -931,9 +993,13 @@ def build_server_from_config(
         sibling = db_path.parent / "sqlmodel-raw.db"
         sql_model = sibling if sibling.exists() else None
     ax_db = Path(ax_db_path).resolve() if ax_db_path else None
+    doc_db = Path(doc_db_path).resolve() if doc_db_path else None
+    if doc_db is None:
+        sibling = db_path.parent / "docs.db"
+        doc_db = sibling if sibling.exists() else None
     return D365MCPServer(repo_root, rules_path, db_path, pkg, method, lint_config=lint_config,
                          extra_roots=roots, sql_model_path=sql_model, auto_fetch_url=auto_fetch_url,
-                         ax_db_path=ax_db)
+                         ax_db_path=ax_db, doc_db_path=doc_db)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -961,6 +1027,10 @@ def main(argv: list[str] | None = None) -> int:
         "--ax-db", default=os.environ.get("D365FO_AX_DB"),
         help="AX 2012 index (from build-ax-index) — grounds platform:ax2012 guidance topics.",
     )
+    parser.add_argument(
+        "--doc-db", default=os.environ.get("D365FO_DOC_DB"),
+        help="Documentation index (from build-doc-index) — enables search_docs/get_docs/docs_stats.",
+    )
     args = parser.parse_args(argv)
 
     # Embedded-knowledge mode: run from a prebuilt index alone (no repo). Default the DB to the
@@ -986,7 +1056,7 @@ def main(argv: list[str] | None = None) -> int:
         args.repo_root, args.rules, db_path=db, packages_root=args.packages_root,
         methodology_path=args.methodology, lint_rules_path=args.lint_rules,
         extra_roots=args.extra_root, sql_model_path=args.sql_model, auto_fetch_url=auto_fetch_url,
-        ax_db_path=args.ax_db,
+        ax_db_path=args.ax_db, doc_db_path=args.doc_db,
     )
     server.serve_stdio()
     return 0
