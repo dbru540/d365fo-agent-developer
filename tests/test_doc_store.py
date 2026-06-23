@@ -50,3 +50,63 @@ def test_search_empty_query_returns_empty(tmp_path):
     with DocIndex(tmp_path / "docs.db") as di:
         di.add_chunks([_chunk("anything")])
         assert di.search("   ") == []
+
+
+# ---------------------------------------------------------------------------
+# Fake embedder — deterministic, no fastembed or numpy needed.
+# Maps text fragments to fixed small float lists (dim 3 for speed).
+# ---------------------------------------------------------------------------
+class FakeEmbedder:
+    """Deterministic in-test embedder that maps known text substrings to fixed vectors.
+
+    embed(texts) accepts a list of prefixed strings (e.g. "passage: settlement …") and
+    returns a generator of plain Python lists — no numpy, no fastembed.
+    Unknown texts get a zero vector.
+    """
+
+    _MAP = {
+        "settlement": [1.0, 0.0, 0.0],
+        "reconciliation": [0.0, 1.0, 0.0],
+        "journal": [0.0, 0.0, 1.0],
+    }
+    _DIM = 3
+
+    def embed(self, texts):
+        for text in texts:
+            t = text.lower()
+            vec = next((v for key, v in self._MAP.items() if key in t), [0.0] * self._DIM)
+            yield list(vec)
+
+
+def _make_index_with_chunks(tmp_path):
+    """Helper: DocIndex with three chunks and no vectors yet."""
+    di = DocIndex(tmp_path / "docs.db")
+    di.add_chunks([
+        _chunk("settlement matches vendor invoices", ord=0, module="ap"),
+        _chunk("bank reconciliation statement", ord=1, module="gl"),
+        _chunk("general ledger journal posting", ord=2, module="gl"),
+    ])
+    return di
+
+
+def test_add_vectors_populates_chunk_vectors(tmp_path):
+    """add_vectors fills chunk_vectors for all chunks that lack a vector."""
+    di = _make_index_with_chunks(tmp_path)
+    embedder = FakeEmbedder()
+    n = di.add_vectors(embedder, model_name="fake/dim3", dim=3)
+    assert n == 3
+    stats = di.stats()
+    assert stats["has_vectors"] is True
+    di.close()
+
+
+def test_add_vectors_is_idempotent(tmp_path):
+    """Calling add_vectors twice does not duplicate rows for already-vectorised chunks."""
+    di = _make_index_with_chunks(tmp_path)
+    embedder = FakeEmbedder()
+    di.add_vectors(embedder, model_name="fake/dim3", dim=3)
+    n2 = di.add_vectors(embedder, model_name="fake/dim3", dim=3)
+    assert n2 == 0  # nothing new to embed
+    count = di.conn.execute("SELECT COUNT(*) FROM chunk_vectors").fetchone()[0]
+    assert count == 3  # still exactly 3, not 6
+    di.close()

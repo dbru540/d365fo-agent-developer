@@ -12,10 +12,34 @@ from __future__ import annotations
 
 import re
 import sqlite3
+import struct
 from pathlib import Path
 from typing import Iterable
 
 from d365fo_agent.doc_ingest import Chunk
+
+
+def _floats_to_blob(vec) -> bytes:
+    """Encode an iterable of floats as little-endian float32 bytes (numpy-tobytes compatible)."""
+    floats = [float(x) for x in vec]
+    return struct.pack(f"<{len(floats)}f", *floats)
+
+
+def _blob_to_floats(blob: bytes) -> list[float]:
+    n = len(blob) // 4
+    return list(struct.unpack(f"<{n}f", blob)) if n else []
+
+
+def _cosine_floats(a: list[float], b: list[float]) -> float:
+    if not a or not b or len(a) != len(b):
+        return 0.0
+    dot = sum(x * y for x, y in zip(a, b))
+    na = sum(x * x for x in a) ** 0.5
+    nb = sum(y * y for y in b) ** 0.5
+    if na == 0.0 or nb == 0.0:
+        return 0.0
+    return dot / (na * nb)
+
 
 SCHEMA_VERSION = 1
 
@@ -117,6 +141,50 @@ class DocIndex:
             f"WHERE {' AND '.join(where)} ORDER BY rank LIMIT ?"  # bm25() returns negatives; ASC = best match first
         )
         return [dict(row) for row in self.conn.execute(sql, params)]
+
+    def add_vectors(
+        self,
+        embedder: object,
+        *,
+        model_name: str = "intfloat/multilingual-e5-small",
+        dim: int = 384,
+        batch_size: int = 64,
+    ) -> int:
+        """Populate ``chunk_vectors`` for any chunk that does not yet have a vector for
+        ``model_name``.  ``embedder`` must implement ``embed(list[str]) -> Iterable``
+        (the fastembed TextEmbedding interface — or any compatible fake/stub).
+
+        Returns the number of new vectors stored.  Idempotent: already-vectorised chunks
+        are skipped (checked by ``chunk_id`` + ``model``).
+        """
+        existing = {
+            row[0]
+            for row in self.conn.execute(
+                "SELECT chunk_id FROM chunk_vectors WHERE model = ?", (model_name,)
+            )
+        }
+        rows = self.conn.execute(
+            "SELECT id, text FROM chunks ORDER BY id"
+        ).fetchall()
+        pending = [(row["id"], row["text"]) for row in rows if row["id"] not in existing]
+        if not pending:
+            return 0
+
+        n = 0
+        for i in range(0, len(pending), batch_size):
+            batch = pending[i : i + batch_size]
+            ids = [item[0] for item in batch]
+            texts = [f"passage: {item[1]}" for item in batch]
+            vectors = list(embedder.embed(texts))
+            for chunk_id, vec in zip(ids, vectors):
+                blob = _floats_to_blob(vec)
+                self.conn.execute(
+                    "INSERT INTO chunk_vectors(chunk_id, model, dim, vector) VALUES (?, ?, ?, ?)",
+                    (chunk_id, model_name, dim, blob),
+                )
+                n += 1
+        self.conn.commit()
+        return n
 
     def stats(self) -> dict:
         total = self.conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0]
