@@ -1,3 +1,5 @@
+import pytest
+
 from d365fo_agent.doc_ingest import Chunk
 from d365fo_agent.doc_store import DocIndex
 
@@ -170,6 +172,41 @@ def test_search_semantic_uses_or_recall_for_disjoint_terms(tmp_path):
     assert results, "OR-recall must retrieve candidates even when no chunk holds all terms"
     # FakeEmbedder maps the query 'settlement journal' to [1,0,0], so id=1 wins the rerank.
     assert results[0]["id"] == 1, f"expected id=1 first, got {[r['id'] for r in results]}"
+    di.close()
+
+
+class _XLingFake:
+    """Cross-lingual fake: a French term and its English equivalent embed to the SAME vector,
+    mimicking the multilingual-e5 model. Lets us test vector-recall without fastembed."""
+
+    _MAP = {"settlement": [1.0, 0.0, 0.0], "reglement": [1.0, 0.0, 0.0],
+            "journal": [0.0, 0.0, 1.0]}
+    _DIM = 3
+
+    def embed(self, texts):
+        for text in texts:
+            t = text.lower()
+            yield list(next((v for key, v in self._MAP.items() if key in t), [0.0] * self._DIM))
+
+
+def test_search_semantic_vector_recall_crosslingual(tmp_path):
+    """Vector-recall must surface a chunk whose embedding matches the query even when NO query
+    term keyword-matches any chunk — the cross-lingual case (a French query hitting English prose).
+    """
+    pytest.importorskip("numpy")
+    di = DocIndex(tmp_path / "docs.db")
+    di.add_chunks([
+        _chunk("settlement matches vendor invoices", ord=0, module="ap"),     # id=1 -> [1,0,0]
+        _chunk("general ledger journal posting entries", ord=1, module="gl"),  # id=2 -> [0,0,1]
+    ])
+    fake = _XLingFake()
+    di.add_vectors(fake, model_name="fake/dim3", dim=3)
+
+    # 'reglement bancaire' shares NO term with any chunk text -> FTS (even OR) returns 0.
+    # But 'reglement' embeds to [1,0,0] — the same point as chunk 1's 'settlement' vector.
+    results = di.search("reglement bancaire", semantic=True, embedder=fake, model_name="fake/dim3")
+    assert results, "vector-recall must surface a semantically-near chunk with no keyword overlap"
+    assert results[0]["id"] == 1, f"expected id=1 (settlement), got {[r['id'] for r in results]}"
     di.close()
 
 
