@@ -67,6 +67,43 @@ def test_search_docs_semantic_true_degrades_without_extra(tmp_path, monkeypatch)
     assert out["results"]
 
 
+def test_search_docs_semantic_or_recall_end_to_end(tmp_path, monkeypatch):
+    """End-to-end: search_docs (semantic default) routes NL queries through OR-recall.
+
+    The query 'settlement journal' has two terms that never co-occur in one chunk, so the
+    old AND-gating returned 0 results. With vectors present and an embedder available, the
+    tool must OR-recall the candidates and cosine-rerank to a cited hit.
+    """
+    class _Fake:
+        _MAP = {"settlement": [1.0, 0.0, 0.0], "journal": [0.0, 0.0, 1.0]}
+
+        def embed(self, texts):
+            for t in texts:
+                tl = t.lower()
+                yield list(next((v for k, v in self._MAP.items() if k in tl), [0.0, 0.0, 0.0]))
+
+    db = tmp_path / "docs.db"
+    model = "intfloat/multilingual-e5-small"
+    with DocIndex(db) as di:
+        di.add_chunks([
+            Chunk("d", "mslearn", "d365fo", "ap", "Settlement",
+                  "https://learn/x/settlement", 0, "Settlement matches vendor invoices."),
+            Chunk("d", "mslearn", "d365fo", "gl", "Journal",
+                  "https://learn/x/journal", 1, "General ledger journal posting entries."),
+        ])
+        di.add_vectors(_Fake(), model_name=model, dim=3)
+
+    import d365fo_agent.embed as embed_mod
+    monkeypatch.setattr(embed_mod, "EMBED_AVAILABLE", True)
+    monkeypatch.setattr(embed_mod, "get_embedder", lambda *a, **k: _Fake())
+
+    server = build_server_from_config(db_path=tmp_path / "none.db", doc_db_path=db)
+    out = _call(server, "search_docs", {"query": "settlement journal"})  # semantic defaults to True
+    assert out["found"] is True
+    assert out["results"], "OR-recall via search_docs must return hits for a disjoint-term NL query"
+    assert out["results"][0]["source_ref"] == "https://learn/x/settlement"
+
+
 def test_search_docs_tool_schema_has_semantic_field(tmp_path):
     """The search_docs tool schema must include a 'semantic' boolean property."""
     server = _server_with_docs(tmp_path)
