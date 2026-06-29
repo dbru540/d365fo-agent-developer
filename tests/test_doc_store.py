@@ -149,6 +149,30 @@ def test_search_semantic_reranks_candidates(tmp_path):
     di.close()
 
 
+def test_search_semantic_uses_or_recall_for_disjoint_terms(tmp_path):
+    """Hybrid search must retrieve candidates with OR-recall, not AND-of-all-terms.
+
+    No single chunk contains BOTH 'settlement' and 'journal', so the old AND-gated
+    retrieval returned zero candidates and the semantic layer had nothing to rerank.
+    OR-recall retrieves both; cosine rerank then surfaces the best match.
+    """
+    di = DocIndex(tmp_path / "docs.db")
+    di.add_chunks([
+        _chunk("settlement matches vendor invoices", ord=0, module="ap"),        # id=1 -> [1,0,0]
+        _chunk("general ledger journal posting entries", ord=1, module="gl"),     # id=2 -> [0,0,1]
+    ])
+    embedder = FakeEmbedder()
+    di.add_vectors(embedder, model_name="fake/dim3", dim=3)
+
+    # Two terms that never co-occur in one chunk; AND-gating -> 0 candidates.
+    results = di.search("settlement journal", semantic=True, embedder=embedder,
+                        model_name="fake/dim3")
+    assert results, "OR-recall must retrieve candidates even when no chunk holds all terms"
+    # FakeEmbedder maps the query 'settlement journal' to [1,0,0], so id=1 wins the rerank.
+    assert results[0]["id"] == 1, f"expected id=1 first, got {[r['id'] for r in results]}"
+    di.close()
+
+
 def test_search_semantic_degrades_without_vectors(tmp_path):
     """When no vectors are present, semantic=True falls back to FTS5 silently."""
     di = DocIndex(tmp_path / "docs.db")

@@ -130,7 +130,9 @@ class DocIndex:
           no ``embedder`` is supplied → identical to the Phase 1 behaviour.
 
         Hybrid path (``semantic=True`` + vectors present + embedder supplied):
-          1. Run FTS5 to get up to ``semantic_candidates`` candidates.
+          1. Run FTS5 with OR-recall (ANY term matches) for up to ``semantic_candidates``
+             candidates — casts a wide net so natural-language queries are not gated by
+             AND-of-all-terms. Pure FTS5 (``semantic=False``) keeps AND; single-term identical.
           2. Embed the query with ``"query: "`` prefix.
           3. Load the stored vector for each candidate from ``chunk_vectors``.
           4. Rerank by cosine similarity (descending).
@@ -146,7 +148,17 @@ class DocIndex:
         if not terms:
             return []
 
-        match_expr = " ".join(f'"{t}"' for t in terms)
+        # Hybrid retrieval (semantic=True + an embedder + vectors present for this model)
+        # casts a WIDE net with OR-recall, then reranks by cosine for precision. Pure FTS5
+        # keeps AND-of-all-terms for keyword precision. (Single-term queries: AND == OR.)
+        hybrid = bool(
+            semantic
+            and embedder is not None
+            and self.conn.execute(
+                "SELECT 1 FROM chunk_vectors WHERE model = ? LIMIT 1", (model_name,)
+            ).fetchone()
+        )
+        match_expr = (" OR " if hybrid else " ").join(f'"{t}"' for t in terms)
         where = ["chunks_fts MATCH ?"]
         params: list[object] = [match_expr]
         if platform:
@@ -159,7 +171,7 @@ class DocIndex:
             where.append("c.origin = ?")
             params.append(origin)
 
-        candidate_limit = semantic_candidates if semantic else limit
+        candidate_limit = semantic_candidates if hybrid else limit
         params.append(int(candidate_limit))
 
         sql = (
@@ -170,19 +182,9 @@ class DocIndex:
         )
         candidates = [dict(row) for row in self.conn.execute(sql, params)]
 
-        # --- Hybrid rerank (optional) --------------------------------------------
-        if not (semantic and embedder and candidates):
+        # --- Hybrid rerank ------------------------------------------------------
+        if not (hybrid and candidates):
             return candidates[:limit]
-
-        # Check whether chunk_vectors has rows for this model.
-        has_vectors = (
-            self.conn.execute(
-                "SELECT COUNT(*) FROM chunk_vectors WHERE model = ?", (model_name,)
-            ).fetchone()[0]
-            > 0
-        )
-        if not has_vectors:
-            return candidates[:limit]  # degrade gracefully
 
         # Embed the query (FakeEmbedder yields a list; real fastembed yields a float32 array —
         # both iterable — convert to plain floats either way).
