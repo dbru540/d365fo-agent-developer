@@ -134,8 +134,10 @@ class DocIndex:
              candidates — casts a wide net so natural-language queries are not gated by
              AND-of-all-terms. Pure FTS5 (``semantic=False``) keeps AND; single-term identical.
           2. Embed the query with ``"query: "`` prefix.
-          3. Load the stored vector for each candidate from ``chunk_vectors``.
-          4. Rerank by cosine similarity (descending).
+          3. Vector-recall (numpy, ``[semantic]`` extra): add the ``semantic_candidates`` chunks
+             whose stored vectors are closest to the query — keyword-independent, so a French
+             query reaches English passages via the multilingual model. Union with step 1.
+          4. Rerank the merged candidates by cosine similarity (descending).
           5. Return the top ``limit`` hits.
 
         Chunks that lack a vector for ``model_name`` in ``chunk_vectors`` are excluded
@@ -182,8 +184,8 @@ class DocIndex:
         )
         candidates = [dict(row) for row in self.conn.execute(sql, params)]
 
-        # --- Hybrid rerank ------------------------------------------------------
-        if not (hybrid and candidates):
+        # --- Hybrid: embed query, add vector-recall candidates, then cosine-rerank ----------
+        if not hybrid:
             return candidates[:limit]
 
         # Embed the query (FakeEmbedder yields a list; real fastembed yields a float32 array —
@@ -194,6 +196,23 @@ class DocIndex:
             return candidates[:limit]
         if not any(q_floats):
             return candidates[:limit]
+
+        # Vector-recall: brute-force cosine over ALL stored vectors (NOT keyword-gated), so
+        # cross-lingual / paraphrased queries surface relevant chunks the FTS net misses — e.g. a
+        # French query matching English passages via the multilingual model. Union the recalled
+        # rows with the FTS-OR candidates; the cosine rerank below orders the merged set. Requires
+        # numpy (ships with the [semantic] extra); silently no-ops to FTS-only recall without it.
+        seen = {row["id"] for row in candidates}
+        for row in self._vector_recall_rows(
+            q_floats, model_name, semantic_candidates,
+            platform=platform, module=module, origin=origin,
+        ):
+            if row["id"] not in seen:
+                candidates.append(row)
+                seen.add(row["id"])
+
+        if not candidates:
+            return []
 
         scored: list[tuple[float, dict]] = []
         for row in candidates:
@@ -208,6 +227,87 @@ class DocIndex:
 
         scored.sort(key=lambda x: x[0], reverse=True)
         return [row for _, row in scored[:limit]]
+
+    def _vector_recall_rows(
+        self,
+        q_floats: list[float],
+        model_name: str,
+        top_n: int,
+        *,
+        platform: str | None = None,
+        module: str | None = None,
+        origin: str | None = None,
+    ) -> list[dict]:
+        """Up to ``top_n`` chunk rows whose stored vectors are closest (cosine) to ``q_floats`` —
+        a keyword-independent recall step that enables cross-lingual / paraphrase matching.
+
+        Uses numpy (present with the ``[semantic]`` extra) to brute-force the cosine over every
+        stored vector for ``model_name``; returns [] when numpy is absent, no vectors exist, or
+        the query dimensionality differs from the stored vectors. The normalized matrix is cached
+        per model on the instance (~ vectors × dim × 4 bytes) and reused across queries.
+        """
+        try:
+            import numpy as np
+        except Exception:
+            return []
+
+        cache = getattr(self, "_vec_cache", None)
+        if cache is None:
+            cache = self._vec_cache = {}
+        if model_name not in cache:
+            rows = self.conn.execute(
+                "SELECT chunk_id, vector FROM chunk_vectors WHERE model = ? ORDER BY chunk_id",
+                (model_name,),
+            ).fetchall()
+            if rows:
+                ids = [int(r[0]) for r in rows]
+                mat = np.frombuffer(
+                    b"".join(r[1] for r in rows), dtype=np.float32
+                ).reshape(len(ids), -1)
+                norms = np.clip(np.linalg.norm(mat, axis=1, keepdims=True), 1e-8, None)
+                cache[model_name] = (ids, mat / norms)
+            else:
+                cache[model_name] = ([], None)
+        ids, matn = cache[model_name]
+        if matn is None or not ids:
+            return []
+
+        qv = np.asarray(q_floats, dtype=np.float32)
+        if qv.shape[0] != matn.shape[1]:
+            return []  # dimension mismatch (different model) — skip vector recall
+        nq = float(np.linalg.norm(qv))
+        if nq == 0.0:
+            return []
+        sims = matn @ (qv / nq)
+        k = min(int(top_n), int(sims.shape[0]))
+        if k <= 0:
+            return []
+        top = np.argpartition(-sims, k - 1)[:k]
+        top_ids = [int(ids[i]) for i in top]
+
+        where = ["id IN (%s)" % ",".join("?" * len(top_ids))]
+        params: list[object] = list(top_ids)
+        if platform:
+            where.append("(platform = ? OR platform = 'both')")
+            params.append(platform)
+        if module:
+            where.append("module = ?")
+            params.append(module)
+        if origin:
+            where.append("origin = ?")
+            params.append(origin)
+        sql = (
+            "SELECT id, doc_id, origin, platform, module, title, source_ref, ord, text "
+            f"FROM chunks WHERE {' AND '.join(where)}"
+        )
+        out: list[dict] = []
+        for r in self.conn.execute(sql, params):
+            d = dict(r)
+            text = d.pop("text", "") or ""
+            d["snippet"] = text[:200]
+            d["rank"] = None
+            out.append(d)
+        return out
 
     def add_vectors(
         self,

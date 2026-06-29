@@ -774,8 +774,10 @@ class D365MCPServer:
             "Use this to ground functional behaviour BEFORE writing it from memory; every hit carries "
             "its source citation (source_ref). Complements the AOT/symbol tools (which ground "
             "technical facts). Returns ranked chunks with a snippet, not full pages. "
-            "Set semantic=true (default) to use hybrid BM25→cosine rerank when the [semantic] "
-            "extra is installed and vectors are present; degrades silently to FTS5 otherwise.",
+            "Set semantic=true (default) for hybrid retrieval — OR-recall + vector recall, "
+            "reranked by cosine — when the [semantic] extra is installed and vectors are present "
+            "(degrades silently to FTS5 otherwise). Works CROSS-LINGUALLY: a French question "
+            "finds the relevant English MS Learn passages via the multilingual model.",
             {"type": "object", "properties": {
                 "query": STR, "platform": STR, "module": STR, "origin": STR,
                 "limit": INT, "semantic": BOOL,
